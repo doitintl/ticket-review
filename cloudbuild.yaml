@@ -104,15 +104,8 @@ steps:
         "gcr.io/$PROJECT_ID/ticket-review-app",
         "--region",
         "us-central1",
-        "--allow-unauthenticated",
         "--platform",
         "managed",
-        "--memory",
-        "500Mi",
-        "--max-instances",
-        "5",
-        "--update-env-vars",
-        "API=",
       ]
 
 # [END tf-apply]
