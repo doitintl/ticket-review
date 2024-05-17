@@ -6,12 +6,6 @@ resource "google_cloud_run_v2_service" "default" {
   template {
     containers {
       image = "gcr.io/${var.project}/ticket-review-app"
-      resources {
-        limits = {
-          cpu    = "2"
-          memory = "1024Mi"
-        }
-      }
     }
   }
 
