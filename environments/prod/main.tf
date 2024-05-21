@@ -54,6 +54,7 @@ resource "google_compute_region_network_endpoint_group" "default" {
 
 resource "google_compute_backend_service" "default" {
   provider = google-beta
+  project  = var.project
   name     = "${var.app_name}-backend-service"
   backend {
     group = google_compute_region_network_endpoint_group.default.id
@@ -79,6 +80,7 @@ resource "google_compute_managed_ssl_certificate" "default" {
 
 resource "google_compute_target_https_proxy" "default" {
   provider = google-beta
+  project  = var.project
   name     = "${var.app_name}-https-proxy"
   url_map  = google_compute_url_map.default.id
   ssl_certificates = [
