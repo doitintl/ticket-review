@@ -14,3 +14,7 @@
 
 
 variable "project" {}
+
+variable "region" {}
+
+variable "app_name" {}

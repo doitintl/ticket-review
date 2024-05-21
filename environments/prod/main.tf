@@ -12,27 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-locals {
-  env = "prod"
-}
-
 provider "google" {
-  project = "${var.project}"
+  project = var.project
 }
 
 resource "google_compute_global_address" "default" {
-  name = "global-ticket-review-ip"
+  name = "global-${var.app_name}-ip"
 }
 
 resource "google_cloud_run_v2_service" "default" {
-  name     = "ticket-review-app"
-  location = "us-central1"
+  name     = "${var.app_name}-app"
+  location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"
 
   template {
     containers {
-      image = "gcr.io/${var.project}/ticket-review-app"
+      image = "gcr.io/${var.project}/${var.app_name}-app"
     }
   }
 
@@ -44,4 +39,60 @@ resource "google_cloud_run_v2_service" "default" {
       client_version
     ]
   }
+}
+
+resource "google_compute_region_network_endpoint_group" "default" {
+  provider              = google-beta
+  name                  = "${var.app_name}-serverless-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  cloud_run {
+    service = google_cloud_run_v2_service.default.name
+  }
+}
+
+resource "google_compute_backend_service" "default" {
+  provider = google-beta
+  name     = "${var.app_name}-backend-service"
+  backend {
+    group = google_compute_global_network_endpoint_group.default.id
+  }
+}
+
+resource "google_compute_url_map" "default" {
+  provider        = google-beta
+  project         = var.project
+  name            = "${var.app_name}-url-map"
+  default_service = google_compute_backend_service.default.id
+}
+
+resource "google_compute_managed_ssl_certificate" "default" {
+  provider = google-beta
+  name     = "${var.app_name}-ssl-cert"
+
+  managed {
+    domains = ["${var.app_name}.internal.doit.com"]
+  }
+}
+
+resource "google_compute_target_https_proxy" "default" {
+  provider = google-beta
+  name     = "${var.app_name}-https-proxy"
+  url_map  = google_compute_url_map.default.id
+  ssl_certificates = [
+    google_compute_managed_ssl_certificate.default.name
+  ]
+  depends_on = [
+    google_compute_managed_ssl_certificate.default
+  ]
+}
+
+resource "google_compute_global_forwarding_rule" "https" {
+  provider              = google-beta
+  project               = var.project
+  name                  = "${var.app_name}-https"
+  target                = google_compute_target_https_proxy.default.id
+  ip_address            = google_compute_global_address.default.id
+  port_range            = "443"
+  load_balancing_scheme = "EXTERNAL"
 }
