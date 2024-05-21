@@ -43,6 +43,7 @@ resource "google_cloud_run_v2_service" "default" {
 
 resource "google_compute_region_network_endpoint_group" "default" {
   provider              = google-beta
+  project               = var.project
   name                  = "${var.app_name}-serverless-neg"
   network_endpoint_type = "SERVERLESS"
   region                = var.region
@@ -68,6 +69,7 @@ resource "google_compute_url_map" "default" {
 
 resource "google_compute_managed_ssl_certificate" "default" {
   provider = google-beta
+  project  = var.project
   name     = "${var.app_name}-ssl-cert"
 
   managed {
