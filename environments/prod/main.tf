@@ -55,7 +55,7 @@ resource "google_compute_backend_service" "default" {
   provider = google-beta
   name     = "${var.app_name}-backend-service"
   backend {
-    group = google_compute_global_network_endpoint_group.default.id
+    group = google_compute_region_network_endpoint_group.default.id
   }
 }
 
