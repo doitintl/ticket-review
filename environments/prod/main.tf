@@ -108,11 +108,12 @@ resource "google_project_service" "project_service" {
   service = "iap.googleapis.com"
 }
 
-resource "google_project_iam_binding" "project" {
+resource "google_cloud_run_v2_service_iam_binding" "binding" {
   project = var.project
-  role    = "roles/run.invoker"
-
+  location = var.region
+  name = google_cloud_run_v2_service.default.name
+  role = "roles/run.invoker"
   members = [
-    "serviceAccount:service-${data.google_project.project.number}@gcp-sa-iap.iam.gserviceaccount.com"
+    "serviceAccount:service-${data.google_project.project.number}@gcp-sa-iap.iam.gserviceaccount.com",
   ]
 }
