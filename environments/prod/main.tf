@@ -100,3 +100,17 @@ resource "google_compute_global_forwarding_rule" "https" {
   port_range            = "443"
   load_balancing_scheme = "EXTERNAL"
 }
+
+resource "google_project_service" "project_service" {
+  project = var.project
+  service = "iap.googleapis.com"
+}
+
+resource "google_project_iam_binding" "project" {
+  project = var.project
+  role    = "roles/run.invoker"
+
+  members = [
+    google_project_service.project_service.id,
+  ]
+}
