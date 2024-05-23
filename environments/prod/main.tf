@@ -104,6 +104,8 @@ resource "google_compute_global_forwarding_rule" "https" {
 }
 
 resource "google_project_service_identity" "iap" {
+  provider = google-beta
+  
   project = var.project
   service = "iap.googleapis.com"
 }
