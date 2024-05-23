@@ -15,6 +15,11 @@
 provider "google" {
   project = var.project
 }
+resource "google_project_service" "project" {
+  project = var.project
+  service = "cloudresourcemanager.googleapis.com"
+  disable_on_destroy = false
+}
 
 resource "google_compute_global_address" "default" {
   name = "global-${var.app_name}-ip"
