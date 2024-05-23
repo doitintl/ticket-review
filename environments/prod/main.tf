@@ -120,9 +120,3 @@ resource "google_cloud_run_v2_service_iam_binding" "binding" {
     "serviceAccount:${google_project_service_identity.iap.email}",
   ]
 }
-
-resource "google_iap_brand" "default" {
-  support_email     = "ticket-review-admins@doit.com"
-  application_title = "Ticket Review Frontend"
-  project           = var.project
-}
