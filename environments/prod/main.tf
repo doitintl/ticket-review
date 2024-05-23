@@ -103,10 +103,11 @@ resource "google_compute_global_forwarding_rule" "https" {
   load_balancing_scheme = "EXTERNAL"
 }
 
-resource "google_project_service" "project_service" {
+resource "google_project_service_identity" "iap" {
   project = var.project
   service = "iap.googleapis.com"
 }
+
 
 resource "google_cloud_run_v2_service_iam_binding" "binding" {
   project = var.project
@@ -114,6 +115,6 @@ resource "google_cloud_run_v2_service_iam_binding" "binding" {
   name = google_cloud_run_v2_service.default.name
   role = "roles/run.invoker"
   members = [
-    "serviceAccount:service-${data.google_project.project.number}@gcp-sa-iap.iam.gserviceaccount.com",
+    "serviceAccount:${google_project_service_identity.iap.email}",
   ]
 }
