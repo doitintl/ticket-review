@@ -12,13 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+data "google_project" "project" {}
+
 provider "google" {
   project = var.project
-}
-resource "google_project_service" "project" {
-  project = var.project
-  service = "cloudresourcemanager.googleapis.com"
-  disable_on_destroy = false
 }
 
 resource "google_compute_global_address" "default" {
@@ -116,6 +113,6 @@ resource "google_project_iam_binding" "project" {
   role    = "roles/run.invoker"
 
   members = [
-    google_project_service.project_service.id,
+    "serviceAccount:service-${data.google_project.project.number}@gcp-sa-iap.iam.gserviceaccount.com"
   ]
 }
