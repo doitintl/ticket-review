@@ -54,12 +54,26 @@ resource "google_compute_region_network_endpoint_group" "default" {
   }
 }
 
+resource "google_project_service_identity" "iap" {
+  provider = google-beta
+
+  project = var.project
+  service = "iap.googleapis.com"
+}
+
+
 resource "google_compute_backend_service" "default" {
   provider = google-beta
   project  = var.project
   name     = "${var.app_name}-backend-service"
+
   backend {
     group = google_compute_region_network_endpoint_group.default.id
+  }
+
+  iap = {
+    oauth2_client_id = google_project_service_identity.iap.email
+    oauth2_client_secret = google_project_service_identity.iap.oauth2_client_secret
   }
 }
 
@@ -103,12 +117,6 @@ resource "google_compute_global_forwarding_rule" "https" {
   load_balancing_scheme = "EXTERNAL"
 }
 
-resource "google_project_service_identity" "iap" {
-  provider = google-beta
-
-  project = var.project
-  service = "iap.googleapis.com"
-}
 
 
 resource "google_cloud_run_v2_service_iam_binding" "binding" {
