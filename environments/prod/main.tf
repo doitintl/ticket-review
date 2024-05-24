@@ -93,8 +93,8 @@ resource "google_compute_backend_service" "default" {
   }
 
   iap {
-    oauth2_client_id = google_iap_client.default.email
-    oauth2_client_secret = google_iap_client.default.oauth2_client_secret
+    oauth2_client_id = google_iap_client.default.client_id
+    oauth2_client_secret = google_iap_client.default.secret
   }
 }
 
