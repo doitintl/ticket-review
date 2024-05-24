@@ -25,7 +25,7 @@ resource "google_compute_global_address" "default" {
 resource "google_cloud_run_v2_service" "default" {
   name     = "${var.app_name}-app"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
     containers {
@@ -41,6 +41,23 @@ resource "google_cloud_run_v2_service" "default" {
       client_version
     ]
   }
+}
+
+data "google_iam_policy" "noauth" {
+  binding {
+    role = "roles/run.invoker"
+    members = [
+      "allUsers",
+    ]
+  }
+}
+
+resource "google_cloud_run_v2_service_iam_policy" "noauth" {
+  location = google_cloud_run_v2_service.default.location
+  project  = google_cloud_run_v2_service.default.project
+  service  = google_cloud_run_v2_service.default.name
+
+  policy_data = data.google_iam_policy.noauth.policy_data
 }
 
 resource "google_compute_region_network_endpoint_group" "default" {
@@ -69,11 +86,6 @@ resource "google_compute_backend_service" "default" {
 
   backend {
     group = google_compute_region_network_endpoint_group.default.id
-  }
-
-  iap = {
-    oauth2_client_id = google_project_service_identity.iap.email
-    oauth2_client_secret = google_project_service_identity.iap.oauth2_client_secret
   }
 }
 
@@ -117,13 +129,11 @@ resource "google_compute_global_forwarding_rule" "https" {
   load_balancing_scheme = "EXTERNAL"
 }
 
-
-
 resource "google_cloud_run_v2_service_iam_binding" "binding" {
-  project = var.project
+  project  = var.project
   location = var.region
-  name = google_cloud_run_v2_service.default.name
-  role = "roles/run.invoker"
+  name     = google_cloud_run_v2_service.default.name
+  role     = "roles/run.invoker"
   members = [
     "serviceAccount:${google_project_service_identity.iap.email}",
   ]
