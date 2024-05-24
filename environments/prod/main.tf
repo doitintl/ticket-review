@@ -78,6 +78,10 @@ resource "google_project_service_identity" "iap" {
   service = "iap.googleapis.com"
 }
 
+resource "google_iap_client" "default" {
+  display_name = "Test Client"
+  brand        = "projects/${data.google_project.project.number}/brands/${var.brand_name}"
+}
 
 resource "google_compute_backend_service" "default" {
   provider = google-beta
@@ -89,8 +93,8 @@ resource "google_compute_backend_service" "default" {
   }
 
   iap {
-    oauth2_client_id = google_project_service_identity.iap.email
-    oauth2_client_secret = google_project_service_identity.iap.oauth2_client_secret
+    oauth2_client_id = google_iap_client.default.email
+    oauth2_client_secret = google_iap_client.default.oauth2_client_secret
   }
 }
 
