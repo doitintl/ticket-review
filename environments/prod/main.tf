@@ -87,6 +87,11 @@ resource "google_compute_backend_service" "default" {
   backend {
     group = google_compute_region_network_endpoint_group.default.id
   }
+
+  iap {
+    oauth2_client_id = google_project_service_identity.iap.email
+    oauth2_client_secret = google_project_service_identity.iap.oauth2_client_secret
+  }
 }
 
 resource "google_compute_url_map" "default" {
