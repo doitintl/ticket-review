@@ -31,7 +31,7 @@ def validate_iap_jwt(iap_jwt, expected_audience):
 def main():
 
     headers = _get_websocket_headers()
-    access_token = headers.get("x-goog-iap-jwt-assertion")
+    access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
 
     st.title('Ticket Review App')
 
