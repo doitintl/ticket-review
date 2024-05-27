@@ -36,7 +36,7 @@ def main():
     st.title('Ticket Review App')
 
     # Text area for ticket input
-    ticket_text = st.text_area('Headers', headers)
+    ticket_text = st.text_area('Headers', validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637"))
 
     ticket_text = st.text_area('Ticket Text', 'Enter the ticket text here...')
 
