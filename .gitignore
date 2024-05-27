@@ -43,3 +43,6 @@ share/python-wheels/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+
+.creds/
