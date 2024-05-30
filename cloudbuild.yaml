@@ -96,18 +96,25 @@ steps:
   # Deploy container image to Cloud Run
   - name: "gcr.io/cloud-builders/gcloud"
     args:
-      [
-        "run",
-        "deploy",
-        "ticket-review-app",
-        "--image",
-        "gcr.io/$PROJECT_ID/ticket-review-app",
-        "--region",
-        "us-central1",
-        "--platform",
-        "managed",
-      ]
-
+    - "-c"
+    - |
+      if [ -d "environments/$BRANCH_NAME/" ]; then
+        [
+          "run",
+          "deploy",
+          "ticket-review-app",
+          "--image",
+          "gcr.io/$PROJECT_ID/ticket-review-app",
+          "--region",
+          "us-central1",
+          "--platform",
+          "managed",
+        ]
+      else
+        echo "************************** SKIPPING CLOUD RUN DEPLOY **************************"
+        echo "Branch '$BRANCH_NAME' does not represent an official environment."
+        echo "*******************************************************************************"
+      fi
 # [END tf-apply]
 images:
 - gcr.io/$PROJECT_ID/ticket-review-app
