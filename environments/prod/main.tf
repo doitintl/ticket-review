@@ -43,11 +43,19 @@ resource "google_cloud_run_v2_service" "default" {
   }
 }
 
+resource "google_project_service_identity" "iap" {
+  provider = google-beta
+
+  project = var.project
+  service = "iap.googleapis.com"
+}
+
+
 data "google_iam_policy" "noauth" {
   binding {
     role = "roles/run.invoker"
     members = [
-      "allUsers",
+      "serviceAccount:${google_project_service_identity.iap.email}",
     ]
   }
 }
@@ -69,13 +77,6 @@ resource "google_compute_region_network_endpoint_group" "default" {
   cloud_run {
     service = google_cloud_run_v2_service.default.name
   }
-}
-
-resource "google_project_service_identity" "iap" {
-  provider = google-beta
-
-  project = var.project
-  service = "iap.googleapis.com"
 }
 
 resource "google_iap_client" "default" {
