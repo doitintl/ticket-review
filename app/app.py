@@ -28,6 +28,7 @@ def get_ticket(ticket_id):
 
     try:
         query = f'SELECT *EXCEPT(comment), "2024-06-06 12:12.12" as  closed_at, "escalated" as escalation_status FROM `doit-ticket-review.sample_data.v1`, UNNEST(comment) as c WHERE id = {ticket_id}'
+        # FIXME: rework query & adding the fields to the table 
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
         return results.to_dataframe()
@@ -72,15 +73,15 @@ def main():
             created_at = df["created_at"].iloc[0]
             closed_at = df["closed_at"].iloc[0]
             ticket_id = df["id"].iloc[0]
+            ticket_prio = df["priority"].iloc[0]
+            cloud= df["custom_platform"].iloc[0]
+            escalated = df["escalation_status"].iloc[0]
 
             st.markdown(    f"**{subject}**")
             with st.expander("Ticket Details 💡", expanded=True):
                 st.markdown( f"opened at *{created_at}* and closed on *{closed_at}* 🏁")
 
-                tagger_component("", [df["priority"].iloc[0],
-                                        df["custom_platform"].iloc[0],
-                                        df["escalation_status"].iloc[0],
-                                        {ticket_id}],
+                tagger_component("", [ticket_prio, cloud, escalated, ticket_id],
                                     color_name=["grey", "grey", "red", "green"])
 
             #with st.expander("AI generated Summary💡", expanded=False):
@@ -102,7 +103,7 @@ def main():
         with st.form(key='review', border=False, clear_on_submit=True):
 
             with st.expander("Things to consider for a good ticket review 💡", expanded=False):
-                st.write(
+                st.write( # FIXME: write a meaningfull decription here
                     """
                     - What kind of information is in this database?
                     - What percentage of orders are returned?
@@ -154,10 +155,13 @@ def main():
 
             submit_form = st.form_submit_button(
                     'Submit review 🏁', type="primary")
-
-            # FIXME: allow submit only when ticket has been loaded - otherwise grey out??!
+            #FIXME: grey it out, when no ticket was loaded
 
         if submit_form:
+
+            #FIXME: only allow submit when a ticket was loaded
+            # use session_state for that : https://discuss.streamlit.io/t/streamlit-button-disable-enable/31293
+            # when the column is loaded add something to session state to indicate a ticket has been loaded
 
             if reviewer_thoughts and reponse_rating and time_rating:
 
@@ -189,7 +193,7 @@ def main():
 
                 db.collection('feedback').add(data) # autogenerates an docuemnt ID
 
-                st.toast('Thanks for helping us!', icon='🎉')
+                st.toast('Thanks for submitting a review!', icon='🎉')               
 
             else:
                 st.warning("Please add a review before submitting")
