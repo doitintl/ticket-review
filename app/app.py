@@ -35,6 +35,7 @@ def get_ticket(ticket_id):
 
     except GoogleAPICallError as e:
         st.error(f"API Error: {e}")
+        return e
 
 def main():
 

@@ -46,3 +46,4 @@ share/python-wheels/
 
 
 .creds/
+.DS_Store
