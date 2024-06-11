@@ -1,10 +1,10 @@
+import datetime
 import streamlit as st
 from google.cloud import bigquery
 from google.cloud import firestore
 from google.cloud import firestore_admin_v1
 from google.api_core.exceptions import GoogleAPICallError
 from streamlit_extras.tags import tagger_component
-import datetime
 
 st.set_page_config(
     page_title="Ticket Review App",
@@ -21,9 +21,13 @@ client_fb = firestore_admin_v1.FirestoreAdminClient()
 db = firestore.Client(project="doit-ticket-review")
 
 @st.cache_data
-def get_ticket(id):
+def get_ticket(ticket_id):
+    """ 
+        Getting Ticket data from a BigQuery dataset. 
+    """
+
     try:
-        query = 'SELECT *EXCEPT(comment), "2024-06-06 12:12.12" as  closed_at, "escalated" as escalation_status FROM `doit-ticket-review.sample_data.v1`, UNNEST(comment) as c WHERE id = 199393'
+        query = f'SELECT *EXCEPT(comment), "2024-06-06 12:12.12" as  closed_at, "escalated" as escalation_status FROM `doit-ticket-review.sample_data.v1`, UNNEST(comment) as c WHERE id = {ticket_id}'
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
         return results.to_dataframe()
@@ -32,6 +36,10 @@ def get_ticket(id):
         st.error(f"API Error: {e}")
 
 def main():
+
+    """ 
+        Streamlit components to run the app
+    """
 
     st.title('Ticket Review App')
 
@@ -47,8 +55,7 @@ def main():
         """
         )
 
-    ticket_id = st.text_input(
-        label="ticket_id", value='199393')
+    ticket_id = st.text_input(label="ticket_id", value='199393')
 
     t = st.button("Get ticket for review", type="primary")
 
@@ -150,8 +157,6 @@ def main():
 
             # FIXME: allow submit only when ticket has been loaded - otherwise grey out??!
 
-        
-
         if submit_form:
 
             if reviewer_thoughts and reponse_rating and time_rating:
@@ -188,7 +193,6 @@ def main():
 
             else:
                 st.warning("Please add a review before submitting")
-
 
 if __name__ == "__main__":
     main()
