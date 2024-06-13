@@ -12,29 +12,139 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-locals {
-  env = "prod"
-}
+data "google_project" "project" {}
 
 provider "google" {
-  project = "${var.project}"
+  project = var.project
 }
 
-module "vpc" {
-  source  = "../../modules/vpc"
-  project = "${var.project}"
-  env     = "${local.env}"
+resource "google_compute_global_address" "default" {
+  name = "global-${var.app_name}-ip"
 }
 
-module "http_server" {
-  source  = "../../modules/http_server"
-  project = "${var.project}"
-  subnet  = "${module.vpc.subnet}"
+resource "google_cloud_run_v2_service" "default" {
+  name     = "${var.app_name}-app"
+  location = var.region
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+
+  template {
+    containers {
+      image = "gcr.io/${var.project}/${var.app_name}-app"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      template[0].containers[0].image,
+      template[0].containers[0].name,
+      client,
+      client_version
+    ]
+  }
 }
 
-module "firewall" {
-  source  = "../../modules/firewall"
-  project = "${var.project}"
-  subnet  = "${module.vpc.subnet}"
+resource "google_project_service_identity" "iap" {
+  provider = google-beta
+
+  project = var.project
+  service = "iap.googleapis.com"
+}
+
+
+data "google_iam_policy" "noauth" {
+  binding {
+    role = "roles/run.invoker"
+    members = [
+      "serviceAccount:${google_project_service_identity.iap.email}",
+    ]
+  }
+}
+
+resource "google_cloud_run_v2_service_iam_policy" "noauth" {
+  location = google_cloud_run_v2_service.default.location
+  project  = google_cloud_run_v2_service.default.project
+  name     = google_cloud_run_v2_service.default.name
+
+  policy_data = data.google_iam_policy.noauth.policy_data
+}
+
+resource "google_compute_region_network_endpoint_group" "default" {
+  provider              = google-beta
+  project               = var.project
+  name                  = "${var.app_name}-serverless-neg"
+  network_endpoint_type = "SERVERLESS"
+  region                = var.region
+  cloud_run {
+    service = google_cloud_run_v2_service.default.name
+  }
+}
+
+resource "google_iap_client" "default" {
+  display_name = "Test Client"
+  brand        = "projects/${data.google_project.project.number}/brands/${var.brand_name}"
+}
+
+resource "google_compute_backend_service" "default" {
+  provider = google-beta
+  project  = var.project
+  name     = "${var.app_name}-backend-service"
+
+  backend {
+    group = google_compute_region_network_endpoint_group.default.id
+  }
+
+  iap {
+    oauth2_client_id = google_iap_client.default.client_id
+    oauth2_client_secret = google_iap_client.default.secret
+  }
+}
+
+resource "google_compute_url_map" "default" {
+  provider        = google-beta
+  project         = var.project
+  name            = "${var.app_name}-url-map"
+  default_service = google_compute_backend_service.default.id
+}
+
+resource "google_compute_managed_ssl_certificate" "default" {
+  provider = google-beta
+  project  = var.project
+  name     = "${var.app_name}-ssl-cert"
+
+  managed {
+    domains = ["${var.app_name}.internal.doit.com"]
+  }
+}
+
+resource "google_compute_target_https_proxy" "default" {
+  provider = google-beta
+  project  = var.project
+  name     = "${var.app_name}-https-proxy"
+  url_map  = google_compute_url_map.default.id
+  ssl_certificates = [
+    google_compute_managed_ssl_certificate.default.name
+  ]
+  depends_on = [
+    google_compute_managed_ssl_certificate.default
+  ]
+}
+
+resource "google_compute_global_forwarding_rule" "https" {
+  provider              = google-beta
+  project               = var.project
+  name                  = "${var.app_name}-https"
+  target                = google_compute_target_https_proxy.default.id
+  ip_address            = google_compute_global_address.default.id
+  port_range            = "443"
+  load_balancing_scheme = "EXTERNAL"
+}
+
+resource "google_cloud_run_v2_service_iam_binding" "binding" {
+  project  = var.project
+  location = var.region
+  name     = google_cloud_run_v2_service.default.name
+  role     = "roles/run.invoker"
+  members = [
+    "serviceAccount:${google_project_service_identity.iap.email}",
+  ]
 }
