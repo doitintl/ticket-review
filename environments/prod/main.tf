@@ -30,7 +30,8 @@ resource "google_service_account" "cloud-run-sa" {
 resource "google_project_iam_member" "cloud-run-sa-role-attachment" {
   for_each = toset([
     "roles/bigquery.jobUser",
-    "roles/bigquery.dataViewer"
+    "roles/bigquery.dataViewer",
+    "roles/datastore.user"
   ])
 
   role       = each.key
