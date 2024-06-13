@@ -70,7 +70,7 @@ def main():
     headers = _get_websocket_headers()
     access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
     user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
-    st.text_area(user_id, user_email, error_str)
+    user_text = st.text_area("User", str(user_id)  + " | " + str(user_email) + " | " + str(error_str))
     #     Example access headers:
     # ticket_text = st.text_area('Headers', validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637"))
     
