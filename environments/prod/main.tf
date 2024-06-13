@@ -22,6 +22,11 @@ resource "google_compute_global_address" "default" {
   name = "global-${var.app_name}-ip"
 }
 
+resource "google_service_account" "cloud_run_sa" {
+  account_id   = "ticket-review-cloud-run-sa"
+  display_name = "Ticket Review Cloud Run Service Account"
+}
+
 resource "google_cloud_run_v2_service" "default" {
   name     = "${var.app_name}-app"
   location = var.region
@@ -31,6 +36,8 @@ resource "google_cloud_run_v2_service" "default" {
     containers {
       image = "gcr.io/${var.project}/${var.app_name}-app"
     }
+
+    service_account = google_service_account.cloud_run_sa.email
   }
 
   lifecycle {
