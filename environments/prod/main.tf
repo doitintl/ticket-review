@@ -22,9 +22,20 @@ resource "google_compute_global_address" "default" {
   name = "global-${var.app_name}-ip"
 }
 
-resource "google_service_account" "cloud_run_sa" {
+resource "google_service_account" "cloud-run-sa" {
   account_id   = "ticket-review-cloud-run-sa"
   display_name = "Ticket Review Cloud Run Service Account"
+}
+
+resource "google_iam_policy" "cloud-run-sa-role-attachment" {
+  for_each = toset([
+    "roles/bigquery.jobUser",
+  ])
+
+  role       = each.key
+  member = [
+    "serviceAccount:${google_service_account.cloud-run-sa.email}",
+  ]
 }
 
 resource "google_cloud_run_v2_service" "default" {

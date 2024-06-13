@@ -43,11 +43,10 @@ st.set_page_config(
 )
 
 PROJECT = "doit-ticket-review"
-CREDS_PATH = ".creds/doit-ticket-review-ac07818e7b29.json"
 
-client = bigquery.Client.from_service_account_json(CREDS_PATH)
+client = bigquery.Client()
 client_fb = firestore_admin_v1.FirestoreAdminClient()
-db = firestore.Client(project="doit-ticket-review")
+db = firestore.Client(project=PROJECT)
 
 @st.cache_data
 def get_ticket(ticket_id):
