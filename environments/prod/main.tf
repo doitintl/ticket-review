@@ -27,15 +27,14 @@ resource "google_service_account" "cloud-run-sa" {
   display_name = "Ticket Review Cloud Run Service Account"
 }
 
-resource "google_iam_policy" "cloud-run-sa-role-attachment" {
+resource "google_project_iam_member" "cloud-run-sa-role-attachment" {
   for_each = toset([
     "roles/bigquery.jobUser",
   ])
 
   role       = each.key
-  member = [
-    "serviceAccount:${google_service_account.cloud-run-sa.email}",
-  ]
+  member = "serviceAccount:${google_service_account.cloud-run-sa.email}"
+  project = var.project
 }
 
 resource "google_cloud_run_v2_service" "default" {
