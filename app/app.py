@@ -1,13 +1,12 @@
 import datetime
+
 import streamlit as st
-from google.cloud import bigquery
-from google.cloud import firestore
-from google.cloud import firestore_admin_v1
 from google.api_core.exceptions import GoogleAPICallError
-from streamlit_extras.tags import tagger_component
-from streamlit.web.server.websocket_headers import _get_websocket_headers
 from google.auth.transport import requests
+from google.cloud import bigquery, firestore, firestore_admin_v1
 from google.oauth2 import id_token
+from streamlit.web.server.websocket_headers import _get_websocket_headers
+from streamlit_extras.tags import tagger_component
 
 
 def validate_iap_jwt(iap_jwt, expected_audience):
@@ -75,6 +74,10 @@ def main():
         st.checkbox(
             'Only non-reviewd tickets (not working yet)', value=True)
 
+        on = st.toggle("Only non-reviewd tickets (not working yet)")
+
+        if on:
+            st.write("Feature activated!")
         st.write(
             """
             a) To read more about go to go/ticket-review-process
@@ -87,13 +90,10 @@ def main():
         access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
         user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
         st.text_area("User", str(user_id)  + " | " + str(user_email) + " | " + str(error_str))
-    
-        #     Example access headers:
-        # ticket_text = st.text_area('Headers', validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637"))
-        
-    ticket_id = st.text_input(label="ticket_id", value='199393')
 
-    t = st.button("Get ticket for review", type="primary")
+    with st.container(border=True):
+        ticket_id = st.text_input(label="ticket_id", value='199393')
+        t = st.button("Get ticket for review", type="primary")
 
     col1, col2 = st.columns(2)
 
@@ -151,46 +151,65 @@ def main():
 
             # Star rating
             reponse_rating = st.slider(
-                'Quality of Responses: accuracy, clarity, and completeness', 1, 5,
+                'Quality of Responses: accuracy, clarity, and completeness'
+                , 1, 5,
                 help="A score of 1 indicates poor quality, while a score of 5 indicates excellent quality.")
             time_rating = st.slider(
-                'Timeliness of Responses: promptness of follow-ups, resolution time, and efficiency', 1, 5,
-                help="A score of 1 indicates significant delays and 5 indicates consistently prompt and timely responses throughout the entire case interaction.")
+                'Timeliness of Responses: promptness of follow-ups, resolution time, and efficiency'
+                , 1, 5,
+                help="A score of 1 indicates significant delays and 5 indicates"
+                    "consistently prompt and timely responses throughout the entire case interaction.")
             kindness_rating = st.slider(
-                'Agent Kindness: friendliness, politeness, and empathy', 1, 5,
+                'Agent Kindness: friendliness, politeness, and empathy'
+                , 1, 5,
                 help="A score of 1 indicates a lack of kindness and 5 indicates exceptional kindness.")
             complexity_rating = st.slider(
-                'Complexity Handling', 1, 5,
-                help="A score of 1 indicates poor handling (missing key details, inadequate solutions) and 5 indicates excellent handling (thorough analysis, effective resource use, clear communication).")
+                'Complexity Handling', 
+                1, 5,
+                help="A score of 1 indicates poor handling (missing key details, inadequate solutions)"
+                    "and 5 indicates excellent handling (thorough analysis, effective resource use, clear communication).")
             knowledge_rating = st.slider(
-                'CRE Knowledge and Expertise',  1, 5,
+                'CRE Knowledge and Expertise'
+                ,  1, 5,
                 help="A score of 1 indicates a lack of expertise and 5 indicates high expertise.")
 
             # Checkboxes for Knowledge assets
-            cola, colb = st.columns(2)
+            cola, colb, colc = st.columns(3)
 
             with cola:
-                needs_cre_feedback = st.checkbox(
-                    'Needs a cre-feedback', help="This is the tooltip for")
-                good_story = st.checkbox('This is a good story')
-            with colb:
                 blogpost_candidate = st.checkbox(
-                    'This is a blog-post candidate')
+                    'This is a **blog-post** candidate')
                 playbook_candidate = st.checkbox(
-                    'This is a playbook candidate')
+                    'This is a **playbook** candidate')
                 casestudy_candidate = st.checkbox(
-                    'This is a case study candidate')
+                    'This is a **case study** candidate')
+            with colb:
+                needs_cre_feedback = st.checkbox(
+                    'Needs a cre-feedback', help="We have a seperate process for this")
+                good_story = st.checkbox('This is a good story')
 
-            tags = st.multiselect("Adherence to Company Values",
+            with colc:
+                tags = st.multiselect("Adherence to Company Values",
                                   ["#wow-the-customer", "#act-as-one-team", "#see-it-through",
                                       "#be-entrepreneurial", "#pursue-knowledge", "#have-fun"],
                                   [])  # pre-filled-values
 
             reviewer_thoughts = st.text_area(
-                "Learning and Improvement Feedback(*)",  ' ', help="This is a mandatory field")
+                "Learning and Improvement Feedback(*)",  
+                "It was the best of times, it was the worst of times, it was the age of "
+                "wisdom, it was the age of foolishness, it was the epoch of belief, it "
+                "was the epoch of incredulity, it was the season of Light, it was the "
+                "season of Darkness, it was the spring of hope, it was the winter of "
+                "despair, (...)",
+                help="This is a mandatory field",
+                height= 150)
+
+            st.write(f"You wrote {len(reviewer_thoughts)} characters.")
+
+            st.session_state.type = "primary"
 
             submit_form = st.form_submit_button(
-                    'Submit review 🏁', type="primary")
+                    'Submit review 🏁', type=st.session_state.type)
             #FIXME: grey it out, when no ticket was loaded
 
         if submit_form:
@@ -229,7 +248,7 @@ def main():
 
                 db.collection('feedback').add(data) # autogenerates an docuemnt ID
 
-                st.toast('Thanks for submitting a review!', icon='🎉')               
+                st.toast('Thanks for submitting a review!', icon='🎉')         
 
             else:
                 st.warning("Please add a review before submitting")
