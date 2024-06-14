@@ -1,13 +1,12 @@
 import datetime
+
 import streamlit as st
-from google.cloud import bigquery
-from google.cloud import firestore
-from google.cloud import firestore_admin_v1
 from google.api_core.exceptions import GoogleAPICallError
-from streamlit_extras.tags import tagger_component
-from streamlit.web.server.websocket_headers import _get_websocket_headers
 from google.auth.transport import requests
+from google.cloud import bigquery, firestore, firestore_admin_v1
 from google.oauth2 import id_token
+from streamlit.web.server.websocket_headers import _get_websocket_headers
+from streamlit_extras.tags import tagger_component
 
 
 def validate_iap_jwt(iap_jwt, expected_audience):
@@ -34,7 +33,6 @@ def validate_iap_jwt(iap_jwt, expected_audience):
     except Exception as e:
         return (None, None, f"**ERROR: JWT validation error {e}**")
 
-
 st.set_page_config(
     page_title="Ticket Review App",
     page_icon="🧊",
@@ -55,8 +53,7 @@ def get_ticket(ticket_id):
     """
 
     try:
-        query = f'SELECT *EXCEPT(comment), "2024-06-06 12:12.12" as  closed_at, "escalated" as escalation_status FROM `doit-ticket-review.sample_data.v1`, UNNEST(comment) as c WHERE id = {ticket_id}'
-        # FIXME: rework query & adding the fields to the table 
+        query = f'SELECT *EXCEPT(comment) FROM `doit-ticket-review.sample_data.v1`, UNNEST(comment) as c WHERE id = {ticket_id}'
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
         return results.to_dataframe()
@@ -66,14 +63,6 @@ def get_ticket(ticket_id):
         return e
 
 def main():
-
-    headers = _get_websocket_headers()
-    access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
-    user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
-    user_text = st.text_area("User", str(user_id)  + " | " + str(user_email) + " | " + str(error_str))
-    #     Example access headers:
-    # ticket_text = st.text_area('Headers', validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637"))
-    
     """ 
         Streamlit components to run the app
     """
@@ -85,6 +74,10 @@ def main():
         st.checkbox(
             'Only non-reviewd tickets (not working yet)', value=True)
 
+        on = st.toggle("Only non-reviewd tickets (not working yet)")
+
+        if on:
+            st.write("Feature activated!")
         st.write(
             """
             a) To read more about go to go/ticket-review-process
@@ -92,13 +85,19 @@ def main():
         """
         )
 
-    ticket_id = st.text_input(label="ticket_id", value='199393')
 
-    t = st.button("Get ticket for review", type="primary")
+        headers = _get_websocket_headers()
+        access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
+        user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
+        st.text_area("User", str(user_id)  + " | " + str(user_email) + " | " + str(error_str))
+
+    with st.container(border=True):
+        ticket_id = st.text_input(label="ticket_id", value='199393')
+        t = st.button("Get ticket for review", type="primary")
 
     col1, col2 = st.columns(2)
 
-    with col1.container(height=800):
+    with col1.container(height=1000):
 
         # Button to trigger the query execution
         if t:
@@ -107,18 +106,19 @@ def main():
 
             subject = df["subject"].iloc[0]
             created_at = df["created_at"].iloc[0]
-            closed_at = df["closed_at"].iloc[0]
+            lastupdate_at = df["lastupdate_at"].iloc[0]
             ticket_id = df["id"].iloc[0]
             ticket_prio = df["priority"].iloc[0]
             cloud= df["custom_platform"].iloc[0]
-            escalated = df["escalation_status"].iloc[0]
+            product = df["custom_product"].loc[0]
+            escalated = df["escalated"].iloc[0]
 
             st.markdown(    f"**{subject}**")
             with st.expander("Ticket Details 💡", expanded=True):
-                st.markdown( f"opened at *{created_at}* and closed on *{closed_at}* 🏁")
+                st.markdown( f"opened at *{created_at}* and closed on *{lastupdate_at}* 🏁")
 
-                tagger_component("", [ticket_prio, cloud, escalated, ticket_id],
-                                    color_name=["grey", "grey", "red", "green"])
+                tagger_component("", [ticket_prio, escalated, cloud, product],
+                                    color_name=["grey", "red", "green", "green"])
 
             #with st.expander("AI generated Summary💡", expanded=False):
             #    st.write(
@@ -134,7 +134,7 @@ def main():
                 st.write(f"{comments}")
                 st.divider()
 
-    with col2.container(height=800):
+    with col2.container(height=1000):
 
         with st.form(key='review', border=False, clear_on_submit=True):
 
@@ -151,46 +151,65 @@ def main():
 
             # Star rating
             reponse_rating = st.slider(
-                'Quality of Responses: accuracy, clarity, and completeness', 1, 5,
+                'Quality of Responses: accuracy, clarity, and completeness'
+                , 1, 5,
                 help="A score of 1 indicates poor quality, while a score of 5 indicates excellent quality.")
             time_rating = st.slider(
-                'Timeliness of Responses: promptness of follow-ups, resolution time, and efficiency', 1, 5,
-                help="A score of 1 indicates significant delays and 5 indicates consistently prompt and timely responses throughout the entire case interaction.")
+                'Timeliness of Responses: promptness of follow-ups, resolution time, and efficiency'
+                , 1, 5,
+                help="A score of 1 indicates significant delays and 5 indicates"
+                    "consistently prompt and timely responses throughout the entire case interaction.")
             kindness_rating = st.slider(
-                'Agent Kindness: friendliness, politeness, and empathy', 1, 5,
+                'Agent Kindness: friendliness, politeness, and empathy'
+                , 1, 5,
                 help="A score of 1 indicates a lack of kindness and 5 indicates exceptional kindness.")
             complexity_rating = st.slider(
-                'Complexity Handling', 1, 5,
-                help="A score of 1 indicates poor handling (missing key details, inadequate solutions) and 5 indicates excellent handling (thorough analysis, effective resource use, clear communication).")
+                'Complexity Handling', 
+                1, 5,
+                help="A score of 1 indicates poor handling (missing key details, inadequate solutions)"
+                    "and 5 indicates excellent handling (thorough analysis, effective resource use, clear communication).")
             knowledge_rating = st.slider(
-                'CRE Knowledge and Expertise',  1, 5,
+                'CRE Knowledge and Expertise'
+                ,  1, 5,
                 help="A score of 1 indicates a lack of expertise and 5 indicates high expertise.")
 
             # Checkboxes for Knowledge assets
-            cola, colb = st.columns(2)
+            cola, colb, colc = st.columns(3)
 
             with cola:
-                needs_cre_feedback = st.checkbox(
-                    'Needs a cre-feedback', help="This is the tooltip for")
-                good_story = st.checkbox('This is a good story')
-            with colb:
                 blogpost_candidate = st.checkbox(
-                    'This is a blog-post candidate')
+                    'This is a **blog-post** candidate')
                 playbook_candidate = st.checkbox(
-                    'This is a playbook candidate')
+                    'This is a **playbook** candidate')
                 casestudy_candidate = st.checkbox(
-                    'This is a case study candidate')
+                    'This is a **case study** candidate')
+            with colb:
+                needs_cre_feedback = st.checkbox(
+                    'Needs a cre-feedback', help="We have a seperate process for this")
+                good_story = st.checkbox('This is a good story')
 
-            tags = st.multiselect("Adherence to Company Values",
+            with colc:
+                tags = st.multiselect("Adherence to Company Values",
                                   ["#wow-the-customer", "#act-as-one-team", "#see-it-through",
                                       "#be-entrepreneurial", "#pursue-knowledge", "#have-fun"],
                                   [])  # pre-filled-values
 
             reviewer_thoughts = st.text_area(
-                "Learning and Improvement Feedback(*)",  ' ', help="This is a mandatory field")
+                "Learning and Improvement Feedback(*)",  
+                "It was the best of times, it was the worst of times, it was the age of "
+                "wisdom, it was the age of foolishness, it was the epoch of belief, it "
+                "was the epoch of incredulity, it was the season of Light, it was the "
+                "season of Darkness, it was the spring of hope, it was the winter of "
+                "despair, (...)",
+                help="This is a mandatory field",
+                height= 150)
+
+            st.write(f"You wrote {len(reviewer_thoughts)} characters.")
+
+            st.session_state.type = "primary"
 
             submit_form = st.form_submit_button(
-                    'Submit review 🏁', type="primary")
+                    'Submit review 🏁', type=st.session_state.type)
             #FIXME: grey it out, when no ticket was loaded
 
         if submit_form:
@@ -229,7 +248,7 @@ def main():
 
                 db.collection('feedback').add(data) # autogenerates an docuemnt ID
 
-                st.toast('Thanks for submitting a review!', icon='🎉')               
+                st.toast('Thanks for submitting a review!', icon='🎉')         
 
             else:
                 st.warning("Please add a review before submitting")
