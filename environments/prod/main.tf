@@ -179,7 +179,7 @@ resource "google_bigquery_dataset" "sampled_data" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
   dataset_id    = "sampled_data"
-  location      = var.region
+  location      = "US"
 }
 
 resource "google_bigquery_data_transfer_config" "query_config" {
