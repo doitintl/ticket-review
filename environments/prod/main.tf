@@ -190,6 +190,7 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   data_source_id         = "scheduled_query"
   schedule               = "every 4 hours"
   destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
+  service_account_name   = google_service_account.cloud-run-sa.email
   params = {
     destination_table_name_template = "sampled_tickets"
     write_disposition               = "WRITE_TRUNCATE"
