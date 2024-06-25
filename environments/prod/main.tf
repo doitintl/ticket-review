@@ -186,7 +186,7 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
   display_name           = "update_ticket_review_source_table"
-  location               = var.region
+  location               = "US"
   data_source_id         = "scheduled_query"
   schedule               = "every 4 hours"
   destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
