@@ -18,7 +18,7 @@ WITH
                 "google_g_suite",
                 "google_cloud_platform"
             )
-            and CAST(t.created_at as DATE) = DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
+            and CAST(t.created_at as DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
             and t.status in ("solved", "closed")
             --and t.id = 191936 # test case 
             --and t.id = 199461 --and t.id = 199457 
