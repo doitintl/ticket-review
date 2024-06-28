@@ -136,7 +136,7 @@ def main():
 
         tagger_component("", [ticket_prio, escalated, cloud, product, f"🏁 time-to-solve: {resolution_time} 🏁", f"CSAT: {csat}", f"FRT: {frt}"],
                                 color_name=["grey", "red", "orange", "green", "grey", "grey", "grey"])
- 
+
         with st.expander("Ticket Statstics 💡", expanded=False):
             st.markdown( f"Opened at *{created_at}* and closed on *{lastupdate_at}*")
 
@@ -189,25 +189,25 @@ def main():
             # Star rating
             reponse_rating = st.slider(
                 'Quality of Responses: accuracy, clarity, and completeness'
-                , 1, 5,
+                , 0, 5,
                 help="A score of 1 indicates poor quality, while a score of 5 indicates excellent quality.")
             time_rating = st.slider(
                 'Timeliness of Responses: promptness of follow-ups, resolution time, and efficiency'
-                , 1, 5,
+                , 0, 5,
                 help="A score of 1 indicates significant delays and 5 indicates"
                     "consistently prompt and timely responses throughout the entire case interaction.")
             kindness_rating = st.slider(
                 'Agent Kindness: friendliness, politeness, and empathy'
-                , 1, 5,
+                , 0, 5,
                 help="A score of 1 indicates a lack of kindness and 5 indicates exceptional kindness.")
             complexity_rating = st.slider(
-                'Complexity Handling', 
-                1, 5,
+                'Complexity Handling'
+                , 0, 5,
                 help="A score of 1 indicates poor handling (missing key details, inadequate solutions)"
                     "and 5 indicates excellent handling (thorough analysis, effective resource use, clear communication).")
             knowledge_rating = st.slider(
                 'CRE Knowledge and Expertise'
-                ,  1, 5,
+                , 0 , 5,
                 help="A score of 1 indicates a lack of expertise and 5 indicates high expertise.")
 
             # Checkboxes for Knowledge assets
@@ -224,7 +224,7 @@ def main():
                 needs_cre_feedback = st.checkbox(
                     'Needs a cre-feedback', help="We have a seperate process for this")
                 good_story = st.checkbox('This is a good story')
-            
+
             tags = st.multiselect("Adherence to Company Values",
                                 ["#wow-the-customer", "#act-as-one-team", "#see-it-through",
                                     "#be-entrepreneurial", "#pursue-knowledge", "#have-fun"],
@@ -243,7 +243,7 @@ def main():
             st.session_state.type = "primary"
 
             submit_form = st.form_submit_button(
-                    'Submit review 🏁', type=st.session_state.type)
+                    'Submit review 🏁', type=st.session_state.type, use_container_width = True)
             #FIXME: grey it out, when no ticket was loaded
 
         if submit_form:
@@ -252,7 +252,7 @@ def main():
             # use session_state for that : https://discuss.streamlit.io/t/streamlit-button-disable-enable/31293
             # when the column is loaded add something to session state to indicate a ticket has been loaded
 
-            if reviewer_thoughts and reponse_rating and time_rating:
+            if reviewer_thoughts and reponse_rating != 0 and time_rating:
 
                 timestamp = datetime.datetime.now()
 
@@ -278,7 +278,7 @@ def main():
 
                         'tags': tags,
 
-                        'reviewer': user_email
+                        'reviewer': "philipp@doit.com"
                     }
                     # FIXME: add reviewer name by looking at the Streamlit credentials
                 }
@@ -287,7 +287,7 @@ def main():
 
                 db.collection('feedback').add(data) # autogenerates an docuemnt ID
 
-                st.toast('Thanks for submitting a review!', icon='🎉')         
+                st.toast('Thanks for submitting a review!', icon='🎉')       
 
             else:
                 st.warning("Please add a review before submitting")
