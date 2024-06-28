@@ -1,12 +1,15 @@
 import datetime
 
 import streamlit as st
+import pandas as pd
+import numpy as np
 from google.api_core.exceptions import GoogleAPICallError
 from google.auth.transport import requests
 from google.cloud import bigquery, firestore, firestore_admin_v1
 from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
 from streamlit_extras.tags import tagger_component
+from streamlit_extras.bottom_container import bottom
 
 
 def validate_iap_jwt(iap_jwt, expected_audience):
@@ -34,11 +37,13 @@ def validate_iap_jwt(iap_jwt, expected_audience):
         return (None, None, f"**ERROR: JWT validation error {e}**")
 
 st.set_page_config(
-    page_title="Ticket Review App",
+    page_title="Ticket Review @ DoiT",
     page_icon="🧊",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+st.logo("https://help.doit.com/favicon-32x32.png")
 
 PROJECT = "doit-ticket-review"
 
@@ -46,21 +51,53 @@ client = bigquery.Client()
 client_fb = firestore_admin_v1.FirestoreAdminClient()
 db = firestore.Client(project=PROJECT)
 
-@st.cache_data
-def get_ticket(ticket_id):
+@st.cache_data(ttl=600)
+def get_ticket(ticket_category):
     """ 
         Getting Ticket data from a BigQuery dataset. 
     """
 
     try:
-        query = f'SELECT *EXCEPT(comment) FROM `doit-ticket-review.sample_data.v1`, UNNEST(comment) as c WHERE id = {ticket_id}'
+        query = (f" SELECT *EXCEPT(comment) FROM `doit-ticket-review.sample_data.v3`, UNNEST(comment) AS c"
+                 f" WHERE ticket_id = ("
+                 f"     SELECT ANY_VALUE(ticket_id) FROM `doit-ticket-review.sample_data.v3` "
+                 f"     WHERE custom_product = '{ticket_category}' LIMIT 1 )"
+                 f" ORDER BY   comment_create_ts ASC ")
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
+        return results.to_dataframe()
+
+        # FIXME: handle non-existent tickets gracefully
+
+    except GoogleAPICallError as e:
+        st.error(f"API Error: {e}")
+        return e
+
+def get_ticket_categories():
+    """ 
+    Getting a list of ticket categories
+    """
+
+    try:
+        query = " SELECT custom_product FROM `doit-ticket-review.sample_data.v3` GROUP BY 1"
+        query_job = client.query(query)
+        results = query_job.result()  # Waits for the query to complete
+
         return results.to_dataframe()
 
     except GoogleAPICallError as e:
         st.error(f"API Error: {e}")
         return e
+
+def user_details():
+    """ 
+        Getting all user detials from headers
+    """
+
+    headers = _get_websocket_headers()
+    access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
+    user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
+    st.markdown(f"User {user_id} {user_email} {error_str}")
 
 def main():
     """ 
@@ -69,70 +106,70 @@ def main():
 
     st.title('Ticket Review App')
 
-    with st.sidebar:
-
-        st.checkbox(
-            'Only non-reviewd tickets (not working yet)', value=True)
-
-        on = st.toggle("Only non-reviewd tickets (not working yet)")
-
-        if on:
-            st.write("Feature activated!")
-        st.write(
-            """
-            a) To read more about go to go/ticket-review-process
-            b) You can find all reviewed tickets here XXXX
-        """
-        )
-
-
-        headers = _get_websocket_headers()
-        access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
-        user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
-        st.text_area("User", str(user_id)  + " | " + str(user_email) + " | " + str(error_str))
-
     with st.container(border=True):
-        ticket_id = st.text_input(label="ticket_id", value='199393')
-        t = st.button("Get ticket for review", type="primary")
+        with st.status("Loading tickets...", expanded=True):
+            ticket_category = st.selectbox('Select a ticket category', get_ticket_categories())
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([0.6, 0.4])
 
     with col1.container(height=1000):
 
-        # Button to trigger the query execution
-        if t:
+        df = get_ticket(ticket_category)
 
-            df = get_ticket(ticket_id)
+        if len(df) == 0:
+            st.warning('No ticket avilible for review.', icon="⚠️")
+            return
 
-            subject = df["subject"].iloc[0]
-            created_at = df["created_at"].iloc[0]
-            lastupdate_at = df["lastupdate_at"].iloc[0]
-            ticket_id = df["id"].iloc[0]
-            ticket_prio = df["priority"].iloc[0]
-            cloud= df["custom_platform"].iloc[0]
-            product = df["custom_product"].loc[0]
-            escalated = df["escalated"].iloc[0]
+        subject = df["subject"].iloc[0]
+        created_at = df["ticket_creation_ts"].iloc[0]
+        lastupdate_at = pd.to_datetime(df['lastupdate_at'].iloc[0])
+        resolution_time = lastupdate_at - created_at
+        ticket_id = df["id"].iloc[0]
+        ticket_prio = df["priority"].iloc[0]
+        cloud= df["custom_platform"].iloc[0]
+        product = df["custom_product"].loc[0]
+        escalated = df["escalation"].iloc[0]
+        csat = df["csat"].iloc[0]
+        frt = df["frt"].iloc[0]
 
-            st.markdown(    f"**{subject}**")
-            with st.expander("Ticket Details 💡", expanded=True):
-                st.markdown( f"opened at *{created_at}* and closed on *{lastupdate_at}* 🏁")
+        st.markdown(f"**{subject}**")
 
-                tagger_component("", [ticket_prio, escalated, cloud, product],
-                                    color_name=["grey", "red", "green", "green"])
+        tagger_component("", [ticket_prio, escalated, cloud, product, f"🏁 time-to-solve: {resolution_time} 🏁", f"CSAT: {csat}", f"FRT: {frt}"],
+                                color_name=["grey", "red", "orange", "green", "grey", "grey", "grey"])
+ 
+        with st.expander("Ticket Statstics 💡", expanded=False):
+            st.markdown( f"Opened at *{created_at}* and closed on *{lastupdate_at}*")
 
-            #with st.expander("AI generated Summary💡", expanded=False):
-            #    st.write(
-            #        """
-            #            (comin soon)
-            #        """
-            #    )
+            chart_data = pd.DataFrame(df, columns=["comment_create_ts", "time_to_reply", "user_type","comments"])
+            chart_data["color"] = np.random.choice(['#FC3165', "#303DA8"], len(df))
+            #st.write(chart_data)
 
+            st.scatter_chart(
+                chart_data,
+                x='comment_create_ts',
+                y=["time_to_reply"],
+                size='user_type',
+                color='color'
+            )
+
+        #with st.expander("AI generated Summary💡", expanded=False):
+        #    st.write(
+        #        """
+        #            (comin soon)
+        #        """
+        #    )
+
+        for index in range(len(df)):
+            comments = df["body"].iloc[index]
+            st.write(f"{comments}")
             st.divider()
+            #ttr = df["time_to_reply"].iloc[index]
+            #st.write(f"{ttr}")
+            #st.divider()
 
-            for index in range(len(df)):
-                comments = df["body"].iloc[index]
-                st.write(f"{comments}")
-                st.divider()
+
+            #FIXME: Mark internal comments in another color
+            #FIXME: Mark externa comments in another colour
 
     with col2.container(height=1000):
 
@@ -174,7 +211,7 @@ def main():
                 help="A score of 1 indicates a lack of expertise and 5 indicates high expertise.")
 
             # Checkboxes for Knowledge assets
-            cola, colb, colc = st.columns(3)
+            cola, colb = st.columns(2)
 
             with cola:
                 blogpost_candidate = st.checkbox(
@@ -187,12 +224,11 @@ def main():
                 needs_cre_feedback = st.checkbox(
                     'Needs a cre-feedback', help="We have a seperate process for this")
                 good_story = st.checkbox('This is a good story')
-
-            with colc:
-                tags = st.multiselect("Adherence to Company Values",
-                                  ["#wow-the-customer", "#act-as-one-team", "#see-it-through",
-                                      "#be-entrepreneurial", "#pursue-knowledge", "#have-fun"],
-                                  [])  # pre-filled-values
+            
+            tags = st.multiselect("Adherence to Company Values",
+                                ["#wow-the-customer", "#act-as-one-team", "#see-it-through",
+                                    "#be-entrepreneurial", "#pursue-knowledge", "#have-fun"],
+                                [])  # pre-filled-values
 
             reviewer_thoughts = st.text_area(
                 "Learning and Improvement Feedback(*)",  
@@ -202,9 +238,7 @@ def main():
                 "season of Darkness, it was the spring of hope, it was the winter of "
                 "despair, (...)",
                 help="This is a mandatory field",
-                height= 150)
-
-            st.write(f"You wrote {len(reviewer_thoughts)} characters.")
+                height= 100)
 
             st.session_state.type = "primary"
 
@@ -223,7 +257,7 @@ def main():
                 timestamp = datetime.datetime.now()
 
                 data = {
-                    'ticket': ticket_id,
+                    'ticket': int(ticket_id),
                     'timestamp': timestamp,
                     'review': {
 
@@ -242,9 +276,14 @@ def main():
                         'needs_cre_feedback': needs_cre_feedback,
                         'good_story': good_story,
 
-                        'tags': tags
+                        'tags': tags,
+
+                        'reviewer': user_email
                     }
+                    # FIXME: add reviewer name by looking at the Streamlit credentials
                 }
+
+                st.info(data)
 
                 db.collection('feedback').add(data) # autogenerates an docuemnt ID
 
@@ -252,6 +291,9 @@ def main():
 
             else:
                 st.warning("Please add a review before submitting")
+
+    with bottom():
+        user_details()
 
 if __name__ == "__main__":
     main()
