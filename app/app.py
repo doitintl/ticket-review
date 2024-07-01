@@ -58,9 +58,9 @@ def get_ticket(ticket_category):
     """
 
     try:
-        query = (f" SELECT *EXCEPT(comment) FROM `doit-ticket-review.sample_data.v3`, UNNEST(comment) AS c"
+        query = (f" SELECT *EXCEPT(comment) FROM `doit-ticket-review.sampled_data.sampled_tickets`, UNNEST(comment) AS c"
                  f" WHERE ticket_id = ("
-                 f"     SELECT ANY_VALUE(ticket_id) FROM `doit-ticket-review.sample_data.v3` "
+                 f"     SELECT ANY_VALUE(ticket_id) FROM `doit-ticket-review.sampled_data.sampled_tickets` "
                  f"     WHERE custom_product = '{ticket_category}' LIMIT 1 )"
                  f" ORDER BY   comment_create_ts ASC ")
         query_job = client.query(query)
@@ -79,7 +79,7 @@ def get_ticket_categories():
     """
 
     try:
-        query = " SELECT custom_product FROM `doit-ticket-review.sample_data.v3` GROUP BY 1"
+        query = " SELECT custom_product FROM `doit-ticket-review.sampled_data.sampled_tickets` GROUP BY 1"
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
 
