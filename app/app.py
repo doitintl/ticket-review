@@ -33,8 +33,8 @@ def validate_iap_jwt(iap_jwt, expected_audience):
             certs_url="https://www.gstatic.com/iap/verify/public_key",
         )
         return (decoded_jwt["sub"], decoded_jwt["email"], "")
-    except Exception as e:
-        return (None, None, f"**ERROR: JWT validation error {e}**")
+    except Exception as error:
+        return (None, None, f"**ERROR: JWT validation error {error}**")
 
 st.set_page_config(
     page_title="Ticket Review @ DoiT",
@@ -67,11 +67,9 @@ def get_ticket(ticket_category):
         results = query_job.result()  # Waits for the query to complete
         return results.to_dataframe()
 
-        # FIXME: handle non-existent tickets gracefully
-
-    except GoogleAPICallError as e:
-        st.error(f"API Error: {e}")
-        return e
+    except GoogleAPICallError as error:
+        st.error(f"API Error: {error}")
+        return error
 
 def get_ticket_categories():
     """ 
@@ -79,15 +77,15 @@ def get_ticket_categories():
     """
 
     try:
-        query = " SELECT custom_product FROM `doit-ticket-review.sampled_data.sampled_tickets` GROUP BY 1"
+        query = "SELECT custom_product FROM `doit-ticket-review.sampled_data.sampled_tickets` GROUP BY 1"
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
 
         return results.to_dataframe()
 
-    except GoogleAPICallError as e:
-        st.error(f"API Error: {e}")
-        return e
+    except GoogleAPICallError as error:
+        st.error(f"API Error: {error}")
+        return error
 
 def user_details():
     """ 
@@ -142,7 +140,6 @@ def main():
 
             chart_data = pd.DataFrame(df, columns=["created", "time_to_reply", "user_type","comments"])
             chart_data["color"] = np.random.choice(['#FC3165', "#303DA8"], len(df))
-            #st.write(chart_data)
 
             st.scatter_chart(
                 chart_data,
@@ -151,13 +148,6 @@ def main():
                 size='user_type',
                 color='color'
             )
-
-        #with st.expander("AI generated Summary💡", expanded=False):
-        #    st.write(
-        #        """
-        #            (comin soon)
-        #        """
-        #    )
 
         for index in range(len(df)):
             comments = df["anonymised_body"].iloc[index]
@@ -169,20 +159,18 @@ def main():
 
 
             #FIXME: Mark internal comments in another color
-            #FIXME: Mark externa comments in another colour
+            #FIXME: Mark external comments in another colour
 
     with col2.container(height=1000):
 
         with st.form(key='review', border=False, clear_on_submit=True):
 
             with st.expander("Things to consider for a good ticket review 💡", expanded=False):
-                st.write( # FIXME: write a meaningfull decription here
+                st.write(
                     """
-                    - What kind of information is in this database?
-                    - What percentage of orders are returned?
-                    - How is inventory distributed across our regional distribution centers?
-                    - Do customers typically place more than one order?
-                    - Which product categories have the highest profit margins?
+                    - Be Curious, not judgmental! 
+                    - Take the whole ticket into account 
+                    - read the full docs here go/ticket-review-guideline
                 """
                 )
 
