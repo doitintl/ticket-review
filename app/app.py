@@ -43,7 +43,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-st.logo("https://help.doit.com/favicon-32x32.png")
+#st.logo("https://help.doit.com/favicon-32x32.png")
 
 PROJECT = "doit-ticket-review"
 
