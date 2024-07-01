@@ -14,7 +14,7 @@ AS (
         and tc.user_id != 10480587018012 # exclude Zippy comments
         and tc.user_id != 1824442126 # exclude urgent ticket warnings
         and custom_platform is not null # exclude finance tickets
-        and subject not like ("[gCRE] %")
+        and subject not like ("%[gCRE]%")
         and system_client != "GetDoer/ZendeskClient" # exlude all other GetDoer requests such as Onboarding / ..
         and custom_platform in ("amazon_web_services", "google_g_suite", "google_cloud_platform" )
         and CAST(t.created_at as DATE) >= DATE_SUB(CURRENT_DATE(), INTERVAL 180 DAY)
