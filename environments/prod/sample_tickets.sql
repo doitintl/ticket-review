@@ -98,7 +98,7 @@ AS (
                 ELSE 'OTHER'
             END AS custom_platform,
             ARRAY_AGG(
-                STRUCT(created, user_id, body, user_type) ORDER BY created ASC
+                STRUCT(created, user_id, body, user_type, time_to_reply) ORDER BY created ASC
             ) AS comment,
             MAX(updated_at) AS lastupdate_at #FIXME
         FROM time_to_reply AS ttr
