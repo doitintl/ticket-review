@@ -2,7 +2,8 @@ CREATE MODEL IF NOT EXISTS `${vertex_model_dataset_id}.palm-bison-32k`
   REMOTE WITH CONNECTION `${multi_region}.${connection_id}`
   OPTIONS (ENDPOINT = 'text-bison-32k@002');
 
-CREATE OR REPLACE TABLE `${project}.${sampled_data_dataset_id}.sampled_tickets`
+CREATE TABLE IF NOT EXISTS `${project}.${sampled_data_dataset_id}.{sampled_data_table_id}`
+  AS
 CLUSTER BY custom_platform
 AS (
     WITH _base AS (

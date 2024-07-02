@@ -23,7 +23,9 @@ variable "app_name" {}
 
 variable "brand_name" {}
 
-variable "sql_file" {}
+variable "scheduled_query_sql_file" {}
+
+variable "sampled_tickets_schema_json_file" {}
 
 variable "sampled_data_dataset_id" {}
 

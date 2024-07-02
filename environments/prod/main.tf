@@ -182,6 +182,17 @@ resource "google_bigquery_dataset" "sampled_data" {
   location      = var.multi_region
 }
 
+resource "google_bigquery_table" "default" {
+  dataset_id = google_bigquery_dataset.sampled_data.dataset_id
+  table_id   = "sampled_tickets"
+
+  time_partitioning {
+    type = "DAY"
+  }
+  schema = "${file("${var.sampled_tickets_schema_json_file}")}"
+
+}
+
 resource "google_bigquery_dataset" "vertex_models" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
@@ -207,11 +218,12 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
   service_account_name   = google_service_account.cloud-run-sa.email
   params = {
-    query                = "${templatefile("${var.sql_file}", 
+    query                = "${templatefile("${var.scheduled_query_sql_file}",
                                            {vertex_model_dataset_id = google_bigquery_dataset.vertex_models.dataset_id,
                                            multi_region = var.multi_region,
                                            connection_id = google_bigquery_connection.connection.connection_id,
                                            project = var.project,
-                                           sampled_data_dataset_id = google_bigquery_dataset.sampled_data.dataset_id})}"
+                                           sampled_data_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
+                                           sampled_data_table_id = google_bigquery_table.default.table_id})}"
   }
 }
