@@ -189,6 +189,9 @@ resource "google_bigquery_table" "default" {
   time_partitioning {
     type = "DAY"
   }
+
+  clustering = ["custom_platform"]
+
   schema = "${file("${var.sampled_tickets_schema_json_file}")}"
 
 }
