@@ -188,6 +188,7 @@ resource "google_bigquery_table" "default" {
 
   time_partitioning {
     type = "DAY"
+    field = "ticket_creation_ts"
   }
 
   clustering = ["custom_platform"]
