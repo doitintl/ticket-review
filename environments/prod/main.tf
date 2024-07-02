@@ -178,20 +178,40 @@ resource "google_cloud_run_v2_service_iam_binding" "binding" {
 resource "google_bigquery_dataset" "sampled_data" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
-  dataset_id    = "sampled_data"
-  location      = "US"
+  dataset_id    = var.sampled_data_dataset_id
+  location      = var.multi_region
+}
+
+resource "google_bigquery_dataset" "vertex_models" {
+  depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
+
+  dataset_id    = var.vertex_model_dataset_id
+  location      = var.multi_region
+}
+
+
+resource "google_bigquery_connection" "connection" {
+   connection_id = "cloud-resource-connection"
+   location      = var.multi_region
+   friendly_name = "Cloud Resource Conenction"
+   cloud_resource {}
 }
 
 resource "google_bigquery_data_transfer_config" "query_config" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
   display_name           = "update_ticket_review_source_table"
-  location               = "US"
+  location               = var.multi_region
   data_source_id         = "scheduled_query"
   schedule               = "every 4 hours"
   destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
   service_account_name   = google_service_account.cloud-run-sa.email
   params = {
-    query                           = "${file("${var.sql_file}")}"
+    query                = "${templatefile("${var.sql_file}", 
+                                           {vertex_model_dataset_id = google_bigquery_dataset.vertex_models.dataset_id,
+                                           multi_region = var.multi_region,
+                                           connection_id = google_bigquery_connection.connection.connection_id,
+                                           project = var.project,
+                                           sampled_data_dataset_id = google_bigquery_dataset.sampled_data.dataset_id})}"
   }
 }

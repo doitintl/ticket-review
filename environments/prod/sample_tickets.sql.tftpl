@@ -1,4 +1,8 @@
-CREATE OR REPLACE TABLE `doit-ticket-review.sampled_data.sampled_tickets`
+CREATE MODEL IF NOT EXISTS `${vertex_model_dataset_id}.palm-bison-32k`
+  REMOTE WITH CONNECTION `${multi_region}.${connection_id}`
+  OPTIONS (ENDPOINT = 'text-bison-32k@002');
+
+CREATE OR REPLACE TABLE `${project}.${sampled_data_dataset_id}.sampled_tickets`
 CLUSTER BY custom_platform
 AS (
     WITH _base AS (
@@ -109,4 +113,4 @@ AS (
 
     SELECT *
     FROM _calc
-)
+);
