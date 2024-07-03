@@ -2,7 +2,7 @@ CREATE MODEL IF NOT EXISTS `${vertex_model_dataset_id}.palm-bison-32k`
   REMOTE WITH CONNECTION `${multi_region}.${connection_id}`
   OPTIONS (ENDPOINT = 'text-bison-32k@002');
 
-INSERT `${project}.${sampled_data_dataset_id}.{sampled_data_table_id}`
+INSERT `${project}.${sampled_data_dataset_id}.${sampled_data_table_id}`
 WITH _base AS (
     SELECT
         tc.* EXCEPT (id),
