@@ -219,7 +219,6 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   location               = var.multi_region
   data_source_id         = "scheduled_query"
   schedule               = "every 24 hours"
-  destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
   service_account_name   = google_service_account.cloud-run-sa.email
   params = {
     query                = "${templatefile("sample_tickets.sql.tftpl",
