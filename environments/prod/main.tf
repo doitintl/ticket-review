@@ -178,7 +178,7 @@ resource "google_cloud_run_v2_service_iam_binding" "binding" {
 resource "google_bigquery_dataset" "sampled_data" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
-  dataset_id    = var.sampled_data_dataset_id
+  dataset_id    = "sampled_data"
   location      = var.multi_region
 }
 
@@ -193,14 +193,14 @@ resource "google_bigquery_table" "default" {
 
   clustering = ["custom_platform"]
 
-  schema = "${file("${var.sampled_tickets_schema_json_file}")}"
+  schema = "${file("sampled_tickets_schema.json")}"
 
 }
 
 resource "google_bigquery_dataset" "vertex_models" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
-  dataset_id    = var.vertex_model_dataset_id
+  dataset_id    = "vertex_models"
   location      = var.multi_region
 }
 
@@ -222,7 +222,7 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
   service_account_name   = google_service_account.cloud-run-sa.email
   params = {
-    query                = "${templatefile("${var.scheduled_query_sql_file}",
+    query                = "${templatefile("sample_tickets.sql.tftpl",
                                            {vertex_model_dataset_id = google_bigquery_dataset.vertex_models.dataset_id,
                                            multi_region = var.multi_region,
                                            connection_id = google_bigquery_connection.connection.connection_id,

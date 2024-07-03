@@ -22,11 +22,3 @@ variable "multi_region" {}
 variable "app_name" {}
 
 variable "brand_name" {}
-
-variable "scheduled_query_sql_file" {}
-
-variable "sampled_tickets_schema_json_file" {}
-
-variable "sampled_data_dataset_id" {}
-
-variable "vertex_model_dataset_id" {}
