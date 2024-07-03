@@ -218,7 +218,7 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   display_name           = "update_ticket_review_source_table"
   location               = var.multi_region
   data_source_id         = "scheduled_query"
-  schedule               = "every 4 hours"
+  schedule               = "every 24 hours"
   destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
   service_account_name   = google_service_account.cloud-run-sa.email
   params = {
