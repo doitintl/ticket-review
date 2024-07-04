@@ -171,6 +171,6 @@ _calc AS (
     INNER JOIN final_tags AS t
         ON ttr.id = t.ticket_id
     GROUP BY ALL
-),
+)
 
 SELECT * FROM _calc;
