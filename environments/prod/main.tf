@@ -212,6 +212,13 @@ resource "google_bigquery_connection" "connection" {
    cloud_resource {}
 }
 
+resource "google_project_iam_member" "bq-connection-sa-role-attachment" {
+
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_bigquery_connection.connection.service_account_email}"
+  project = var.project
+}
+
 resource "google_bigquery_data_transfer_config" "query_config" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
