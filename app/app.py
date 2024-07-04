@@ -160,7 +160,7 @@ def main():
         #    )
 
         for index in range(len(df)):
-            comments = df["body"].iloc[index]
+            comments = df["anonymised_body"].iloc[index]
             st.write(f"{comments}")
             st.divider()
             #ttr = df["time_to_reply"].iloc[index]

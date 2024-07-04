@@ -2,6 +2,7 @@ CREATE MODEL IF NOT EXISTS `${vertex_model_dataset_id}.palm-bison-32k`
   REMOTE WITH CONNECTION `${multi_region}.${connection_id}`
   OPTIONS (ENDPOINT = 'text-bison-32k@002');
 
+
 INSERT `${project}.${sampled_data_dataset_id}.${sampled_data_table_id}`
 WITH _base AS (
     SELECT
@@ -32,6 +33,60 @@ WITH _base AS (
         )
         AND t.created_at BETWEEN TIMESTAMP_SUB(@run_time, INTERVAL 24 HOUR) AND @run_time
         AND t.status IN ('solved', 'closed')
+),
+
+prep_comments AS (
+    SELECT
+        id,
+        STRING_AGG(body, '\n[NEW-MESSAGE]\n' ORDER BY created) AS history
+    FROM _base
+    GROUP BY id
+),
+
+anonymised_history AS (
+    SELECT
+        id,
+        SPLIT(LTRIM(ml_generate_text_llm_result, ' START:'), '[NEW-MESSAGE]') AS anonymised_body
+    FROM
+        ML.GENERATE_TEXT(
+            model `vertex_models.palm-bison-32k`,
+            (
+                SELECT
+                    id,
+                    CONCAT(
+                        'The "START:" string will mark a beginning of a conversation between a customer 
+                        (can be more than one) and DoiT engineer (also can be more than one). 
+                        Please anonymise this conversation using names from The Simpsons. 
+                        Output should consist of just the anonymised conversation, without any other changes.
+                        START:',
+                        history
+                    ) AS prompt
+                FROM prep_comments
+            ),
+            STRUCT(
+                0.1 AS temperature,
+                8192 AS max_output_tokens,
+                0.1 AS top_p,
+                TRUE AS flatten_json_output
+            )
+        )
+),
+
+unnested_anonymised_history AS (
+    SELECT
+        id,
+        anonymised_body
+    FROM anonymised_history,
+    UNNEST(anonymised_body) AS anonymised_body
+),
+
+joined_anonymised_history AS (
+    SELECT
+        _base.*,
+        unnested_anonymised_history.anonymised_body
+    FROM _base
+    LEFT JOIN unnested_anonymised_history
+        ON _base.id = unnested_anonymised_history.id
 ),
 
 time_to_reply AS (
@@ -100,15 +155,13 @@ _calc AS (
             ELSE 'OTHER'
         END AS custom_platform,
         ARRAY_AGG(
-            STRUCT(created, user_id, body, user_type, time_to_reply) ORDER BY created ASC
+            STRUCT(created, user_id, body, anonymised_body, user_type, time_to_reply) ORDER BY created ASC
         ) AS comment,
         MAX(updated_at) AS lastupdate_at #FIXME
     FROM time_to_reply AS ttr
     INNER JOIN final_tags AS t
         ON ttr.id = t.ticket_id
     GROUP BY ALL
-)
+),
 
-SELECT *
-FROM _calc
-;
+SELECT * FROM _calc;
