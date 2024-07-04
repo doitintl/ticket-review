@@ -62,6 +62,10 @@
           "type": "STRING"
         },
         {
+          "name": "anonymised_body",
+          "type": "STRING"
+        },
+        {
           "name": "user_type",
           "type": "STRING"
         },

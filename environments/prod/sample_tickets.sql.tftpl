@@ -2,7 +2,6 @@ CREATE MODEL IF NOT EXISTS `${vertex_model_dataset_id}.palm-bison-32k`
   REMOTE WITH CONNECTION `${multi_region}.${connection_id}`
   OPTIONS (ENDPOINT = 'text-bison-32k@002');
 
-
 INSERT `${project}.${sampled_data_dataset_id}.${sampled_data_table_id}`
 WITH _base AS (
     SELECT
@@ -43,10 +42,10 @@ prep_comments AS (
     GROUP BY id
 ),
 
-anonymised_history AS (
+create_anonymised_history AS (
     SELECT
         id,
-        SPLIT(LTRIM(ml_generate_text_llm_result, ' START:'), '[NEW-MESSAGE]') AS anonymised_body
+        SPLIT(LTRIM(ml_generate_text_llm_result, ' START:'), '[NEW-MESSAGE]') AS anonymised_history
     FROM
         ML.GENERATE_TEXT(
             model `vertex_models.palm-bison-32k`,
@@ -54,11 +53,11 @@ anonymised_history AS (
                 SELECT
                     id,
                     CONCAT(
-                        'The "START:" string will mark a beginning of a conversation between a customer 
+                        '''The START: string will mark a beginning of a conversation between a customer 
                         (can be more than one) and DoiT engineer (also can be more than one). 
                         Please anonymise this conversation using names from The Simpsons. 
                         Output should consist of just the anonymised conversation, without any other changes.
-                        START:',
+                        START:''',
                         history
                     ) AS prompt
                 FROM prep_comments
@@ -75,18 +74,28 @@ anonymised_history AS (
 unnested_anonymised_history AS (
     SELECT
         id,
-        anonymised_body
-    FROM anonymised_history,
-    UNNEST(anonymised_body) AS anonymised_body
+        anonymised_body,
+        offset
+    FROM create_anonymised_history,
+        UNNEST(anonymised_history) AS anonymised_body
+        WITH OFFSET AS offset
+),
+
+ranked_base AS (
+    SELECT
+        _base.*,
+        ROW_NUMBER() OVER (PARTITION BY id ORDER BY created) - 1 AS rn
+    FROM _base
 ),
 
 joined_anonymised_history AS (
     SELECT
-        _base.*,
+        ranked_base.*,
         unnested_anonymised_history.anonymised_body
-    FROM _base
+    FROM ranked_base
     LEFT JOIN unnested_anonymised_history
-        ON _base.id = unnested_anonymised_history.id
+        ON ranked_base.id = unnested_anonymised_history.id
+            AND ranked_base.rn = unnested_anonymised_history.offset
 ),
 
 time_to_reply AS (
@@ -97,7 +106,7 @@ time_to_reply AS (
             LEAD(created) OVER (PARTITION BY id ORDER BY created DESC),
             MINUTE
         ) AS time_to_reply
-    FROM _base
+    FROM joined_anonymised_history
     ORDER BY created_at DESC
 ),
 
