@@ -215,7 +215,7 @@ resource "google_bigquery_connection" "connection" {
 resource "google_project_iam_member" "bq-connection-sa-role-attachment" {
 
   role    = "roles/aiplatform.user"
-  member  = "serviceAccount:${google_bigquery_connection.connection.service_account_email}"
+  member  = "serviceAccount:${google_bigquery_connection.connection.cloud_resource[0].service_account_id}"
   project = var.project
 }
 
