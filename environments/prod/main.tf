@@ -31,7 +31,8 @@ resource "google_project_iam_member" "cloud-run-sa-role-attachment" {
   for_each = toset([
     "roles/bigquery.user",
     "roles/bigquery.dataOwner",
-    "roles/datastore.user"
+    "roles/datastore.user",
+    "roles/bigquery.connectionUser"
   ])
 
   role       = each.key
