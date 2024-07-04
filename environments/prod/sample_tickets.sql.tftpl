@@ -30,7 +30,7 @@ WITH _base AS (
         AND custom_platform IN (
             'amazon_web_services', 'google_g_suite', 'google_cloud_platform'
         )
-        AND t.created_at >= TIMESTAMP_SUB(@run_time, INTERVAL 24 HOUR)
+        AND t.created_at BETWEEN TIMESTAMP_SUB(@run_time, INTERVAL 24 HOUR) AND @run_time
         AND t.status IN ('solved', 'closed')
 ),
 

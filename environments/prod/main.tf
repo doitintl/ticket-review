@@ -218,7 +218,7 @@ resource "google_bigquery_data_transfer_config" "query_config" {
   display_name           = "update_ticket_review_source_table"
   location               = var.multi_region
   data_source_id         = "scheduled_query"
-  schedule               = "every 24 hours"
+  schedule               = "every day at 03:00"
   service_account_name   = google_service_account.cloud-run-sa.email
   params = {
     query                = "${templatefile("sample_tickets.sql.tftpl",
