@@ -62,7 +62,7 @@ def get_ticket(ticket_category):
                  f" WHERE ticket_id = ("
                  f"     SELECT ANY_VALUE(ticket_id) FROM `doit-ticket-review.sampled_data.sampled_tickets` "
                  f"     WHERE custom_product = '{ticket_category}' LIMIT 1 )"
-                 f" ORDER BY   comment_create_ts ASC ")
+                 f" ORDER BY   c.created ASC ")
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
         return results.to_dataframe()
@@ -138,19 +138,19 @@ def main():
         with st.expander("Ticket Statstics 💡", expanded=False):
             st.markdown( f"Opened at *{created_at}* and closed on *{lastupdate_at}*")
 
-            chart_data = pd.DataFrame(df, columns=["comment_create_ts", "time_to_reply", "user_type","comments"])
+            chart_data = pd.DataFrame(df, columns=["created", "time_to_reply", "user_type","comments"])
             chart_data["color"] = np.random.choice(['#FC3165', "#303DA8"], len(df))
 
             st.scatter_chart(
                 chart_data,
-                x='comment_create_ts',
+                x='created',
                 y=["time_to_reply"],
                 size='user_type',
                 color='color'
             )
 
         for index in range(len(df)):
-            comments = df["body"].iloc[index]
+            comments = df["anonymised_body"].iloc[index]
             st.write(f"{comments}")
             st.divider()
             #ttr = df["time_to_reply"].iloc[index]

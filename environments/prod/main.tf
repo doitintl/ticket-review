@@ -31,7 +31,8 @@ resource "google_project_iam_member" "cloud-run-sa-role-attachment" {
   for_each = toset([
     "roles/bigquery.user",
     "roles/bigquery.dataOwner",
-    "roles/datastore.user"
+    "roles/datastore.user",
+    "roles/bigquery.connectionUser"
   ])
 
   role       = each.key
@@ -179,21 +180,61 @@ resource "google_bigquery_dataset" "sampled_data" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
   dataset_id    = "sampled_data"
-  location      = "US"
+  location      = var.multi_region
+}
+
+resource "google_bigquery_table" "default" {
+  dataset_id = google_bigquery_dataset.sampled_data.dataset_id
+  table_id   = "sampled_tickets"
+
+  time_partitioning {
+    type = "DAY"
+    field = "ticket_creation_ts"
+  }
+
+  clustering = ["custom_platform"]
+
+  schema = "${file("sampled_tickets_schema.json")}"
+
+}
+
+resource "google_bigquery_dataset" "vertex_models" {
+  depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
+
+  dataset_id    = "vertex_models"
+  location      = var.multi_region
+}
+
+
+resource "google_bigquery_connection" "connection" {
+   connection_id = "cloud-resource-connection"
+   location      = var.multi_region
+   friendly_name = "Cloud Resource Conenction"
+   cloud_resource {}
+}
+
+resource "google_project_iam_member" "bq-connection-sa-role-attachment" {
+
+  role    = "roles/aiplatform.user"
+  member  = "serviceAccount:${google_bigquery_connection.connection.cloud_resource[0].service_account_id}"
+  project = var.project
 }
 
 resource "google_bigquery_data_transfer_config" "query_config" {
   depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
 
   display_name           = "update_ticket_review_source_table"
-  location               = "US"
+  location               = var.multi_region
   data_source_id         = "scheduled_query"
-  schedule               = "every 4 hours"
-  destination_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
+  schedule               = "every day 03:00"
   service_account_name   = google_service_account.cloud-run-sa.email
   params = {
-    destination_table_name_template = "sampled_tickets"
-    write_disposition               = "WRITE_TRUNCATE"
-    query                           = "${file("${var.sql_file}")}"
+    query                = "${templatefile("sample_tickets.sql.tftpl",
+                                           {vertex_model_dataset_id = google_bigquery_dataset.vertex_models.dataset_id,
+                                           multi_region = var.multi_region,
+                                           connection_id = google_bigquery_connection.connection.connection_id,
+                                           project = var.project,
+                                           sampled_data_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
+                                           sampled_data_table_id = google_bigquery_table.default.table_id})}"
   }
 }

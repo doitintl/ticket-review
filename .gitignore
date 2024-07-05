@@ -44,6 +44,9 @@ share/python-wheels/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Terraform
+.terraform/
+.terraform.lock.hcl
 
 .creds/
 .DS_Store

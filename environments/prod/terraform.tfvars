@@ -1,5 +1,5 @@
 project="doit-ticket-review"
 region="us-central1"
+multi_region="US"
 app_name="ticket-review"
 brand_name="874764407517"
-sql_file = "sample_tickets.sql"

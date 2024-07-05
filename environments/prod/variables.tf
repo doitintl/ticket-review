@@ -17,8 +17,8 @@ variable "project" {}
 
 variable "region" {}
 
+variable "multi_region" {}
+
 variable "app_name" {}
 
 variable "brand_name" {}
-
-variable "sql_file" {}
