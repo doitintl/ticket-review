@@ -183,7 +183,14 @@ resource "google_bigquery_dataset" "sampled_data" {
   location      = var.multi_region
 }
 
-resource "google_bigquery_table" "default" {
+resource "google_bigquery_dataset" "output_data" {
+  depends_on = [google_project_iam_member.cloud-run-sa-role-attachment]
+
+  dataset_id    = "output_data"
+  location      = var.multi_region
+}
+
+resource "google_bigquery_table" "sampled_tickets" {
   dataset_id = google_bigquery_dataset.sampled_data.dataset_id
   table_id   = "sampled_tickets"
 
@@ -195,6 +202,14 @@ resource "google_bigquery_table" "default" {
   clustering = ["custom_platform"]
 
   schema = "${file("sampled_tickets_schema.json")}"
+
+}
+
+resource "google_bigquery_table" "reviews" {
+  dataset_id = google_bigquery_dataset.output_data.dataset_id
+  table_id   = "reviews"
+
+  schema = "${file("reviews_schema.json")}"
 
 }
 
@@ -235,6 +250,6 @@ resource "google_bigquery_data_transfer_config" "query_config" {
                                            connection_id = google_bigquery_connection.connection.connection_id,
                                            project = var.project,
                                            sampled_data_dataset_id = google_bigquery_dataset.sampled_data.dataset_id
-                                           sampled_data_table_id = google_bigquery_table.default.table_id})}"
+                                           sampled_data_table_id = google_bigquery_table.sampled_tickets.table_id})}"
   }
 }

@@ -285,9 +285,13 @@ def main():
 
                 st.info(data)
 
-                db.collection('feedback').add(data) # autogenerates an docuemnt ID
+                # db.collection('feedback').add(data) # autogenerates an docuemnt ID
 
-                st.toast('Thanks for submitting a review!', icon='🎉')       
+                errors = client.insert_rows_json("output_data.reviews", [data])
+                if not errors:
+                    st.toast('Thanks for submitting a review!', icon='🎉')
+                else:
+                    st.error(f"Error: {errors}")
 
             else:
                 st.warning("Please add a review before submitting")
