@@ -159,7 +159,7 @@ def main():
 
         # Loop through DataFrame and apply conditional formatting
         for index in range(len(df)):
-            comments = df["body"].iloc[index]
+            comments = df["anonymised_body"].iloc[index]
             user_type = df["user_type"].iloc[index]
 
             # Set the color based on the user type
