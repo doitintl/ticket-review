@@ -295,7 +295,6 @@ def main():
                     st.toast('Thanks for submitting a review!', icon='🎉')
                 else:
                     st.error(f"Error: {errors}")
-
             else:
                 st.warning("Please add a review before submitting")
 
