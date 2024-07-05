@@ -1,5 +1,4 @@
 import datetime
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -33,8 +32,8 @@ def validate_iap_jwt(iap_jwt, expected_audience):
             certs_url="https://www.gstatic.com/iap/verify/public_key",
         )
         return (decoded_jwt["sub"], decoded_jwt["email"], "")
-    except Exception as e:
-        return (None, None, f"**ERROR: JWT validation error {e}**")
+    except Exception as error:
+        return (None, None, f"**ERROR: JWT validation error {error}**")
 
 st.set_page_config(
     page_title="Ticket Review @ DoiT",
@@ -62,16 +61,14 @@ def get_ticket(ticket_category):
                  f" WHERE ticket_id = ("
                  f"     SELECT ANY_VALUE(ticket_id) FROM `doit-ticket-review.sampled_data.sampled_tickets` "
                  f"     WHERE custom_product = '{ticket_category}' LIMIT 1 )"
-                 f" ORDER BY   c.created ASC ")
+                 f" ORDER BY c.created ASC")
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
         return results.to_dataframe()
 
-        # FIXME: handle non-existent tickets gracefully
-
-    except GoogleAPICallError as e:
-        st.error(f"API Error: {e}")
-        return e
+    except GoogleAPICallError as error:
+        st.error(f"API Error: {error}")
+        return error
 
 def get_ticket_categories():
     """ 
@@ -85,9 +82,9 @@ def get_ticket_categories():
 
         return results.to_dataframe()
 
-    except GoogleAPICallError as e:
-        st.error(f"API Error: {e}")
-        return e
+    except GoogleAPICallError as error:
+        st.error(f"API Error: {error}")
+        return error
 
 def user_details():
     """ 
@@ -97,7 +94,7 @@ def user_details():
     headers = _get_websocket_headers()
     access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
     user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
-    st.markdown(f"User {user_id} {user_email} {error_str}")
+    return user_id, user_email, error_str
 
 def main():
     """ 
@@ -134,42 +131,48 @@ def main():
 
         st.markdown(f"**{subject}**")
 
-        tagger_component("", [ticket_prio, escalated, cloud, product, f"🏁 time-to-solve: {resolution_time} 🏁", f"CSAT: {csat}", f"FRT: {frt}"],
+        tagger_component("", [ticket_prio, f"escalated: {escalated}", cloud, product, f"time-to-solve: {resolution_time} 🏁", f"CSAT: {csat}", f"FRT: {frt}"],
                                 color_name=["grey", "red", "orange", "green", "grey", "grey", "grey"])
 
         with st.expander("Ticket Statstics 💡", expanded=False):
             st.markdown( f"Opened at *{created_at}* and closed on *{lastupdate_at}*")
 
-            chart_data = pd.DataFrame(df, columns=["created", "time_to_reply", "user_type","comments"])
-            chart_data["color"] = np.random.choice(['#FC3165', "#303DA8"], len(df))
+            chart_data = pd.DataFrame(df, columns=["created", "time_to_reply", "body", "user_type","comments"])
+
+            # Define a function to determine the color based on user_type
+            def determine_color(user_type):
+                if user_type == "external":
+                    return "#FC3165"
+                elif user_type == "internal":
+                    return "#303DA8"
+
+            # Apply the function to create the new column
+            chart_data["color"] = df["user_type"].apply(determine_color)
+
             #st.write(chart_data)
 
-            st.scatter_chart(
-                chart_data,
+            st.bar_chart(
+                chart_data, 
                 x='created',
                 y=["time_to_reply"],
-                size='user_type',
-                color='color'
-            )
+                color='color')
 
-        #with st.expander("AI generated Summary💡", expanded=False):
-        #    st.write(
-        #        """
-        #            (comin soon)
-        #        """
-        #    )
-
+        # Loop through DataFrame and apply conditional formatting
         for index in range(len(df)):
             comments = df["anonymised_body"].iloc[index]
-            st.write(f"{comments}")
-            st.divider()
-            #ttr = df["time_to_reply"].iloc[index]
-            #st.write(f"{ttr}")
-            #st.divider()
+            user_type = df["user_type"].iloc[index]
 
+            # Set the color based on the user type
+            if user_type == 'external':
+                color = '#F0F2F6'
+            elif user_type == 'internal':
+                color = '#FFFFFF'
+
+            # Display the comment with the specified color
+            st.markdown(f"<div style='background-color:{color}'>{comments}</div>", unsafe_allow_html=True)
+            st.divider()
 
             #FIXME: Mark internal comments in another color
-            #FIXME: Mark externa comments in another colour
 
     with col2.container(height=1000):
 
@@ -255,6 +258,7 @@ def main():
             if reviewer_thoughts and reponse_rating != 0 and time_rating:
 
                 timestamp = datetime.datetime.now()
+                reviewer = user_details()
 
                 data = {
                     'ticket': int(ticket_id),
@@ -278,22 +282,21 @@ def main():
 
                         'tags': tags,
 
-                        'reviewer': "philipp@doit.com"
+                        'reviewer': reviewer
                     }
-                    # FIXME: add reviewer name by looking at the Streamlit credentials
                 }
 
                 st.info(data)
 
                 db.collection('feedback').add(data) # autogenerates an docuemnt ID
 
-                st.toast('Thanks for submitting a review!', icon='🎉')       
+                st.toast('Thanks for submitting a review!', icon='🎉')   
 
             else:
                 st.warning("Please add a review before submitting")
 
     with bottom():
-        user_details()
+        st.markdown( user_details() )
 
 if __name__ == "__main__":
     main()
