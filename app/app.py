@@ -161,7 +161,7 @@ def main():
         for index in range(len(df)):
             comments = df["anonymised_body"].iloc[index]
             user_type = df["user_type"].iloc[index]
-            public = df["public_comment"].iloc[index]
+            public = df["public"].iloc[index]
 
             # Set the color based on the user type
             if public is False:
