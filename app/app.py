@@ -9,6 +9,7 @@ from google.oauth2 import id_token
 from streamlit.web.server.websocket_headers import _get_websocket_headers
 from streamlit_extras.tags import tagger_component
 from streamlit_extras.bottom_container import bottom
+from google.cloud.bigquery._helpers import _timestamp_to_json_parameter
 
 
 def validate_iap_jwt(iap_jwt, expected_audience):
@@ -266,7 +267,7 @@ def main():
 
                 data = {
                     'ticket': int(ticket_id),
-                    'timestamp': timestamp,
+                    'timestamp': _timestamp_to_json_parameter(timestamp),
                     'review': {
 
                         'reponse_rating': reponse_rating,
