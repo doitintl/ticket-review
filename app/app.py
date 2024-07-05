@@ -266,8 +266,8 @@ def main():
                 reviewer = user_details()
 
                 data = {
-                    'ticket': int(ticket_id),
-                    'timestamp': _timestamp_to_json_parameter(timestamp),
+                    'ticket_id': int(ticket_id),
+                    'review_ts': _timestamp_to_json_parameter(timestamp),
                     'review': {
 
                         'reponse_rating': reponse_rating,
