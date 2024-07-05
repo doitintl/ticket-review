@@ -287,7 +287,7 @@ def main():
 
                         'tags': tags,
 
-                        'reviewer': reviewer
+                        'reviewer': reviewer.user_email,
                     }
                 }
 
