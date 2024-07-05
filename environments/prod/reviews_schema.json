@@ -1,0 +1,84 @@
+[
+    {
+      "mode": "REQUIRED",
+      "name": "ticket_id",
+      "type": "INTEGER"
+    },
+    {
+      "mode": "REQUIRED",
+      "name": "review_ts",
+      "type": "TIMESTAMP"
+    },
+    {
+      "fields": [
+        {
+          "mode": "NULLABLE",
+          "name": "reviewer",
+          "type": "STRING"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "reviewer_thoughts",
+          "type": "STRING"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "reponse_rating",
+          "type": "INTEGER"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "time_rating",
+          "type": "INTEGER"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "kindness_rating",
+          "type": "INTEGER"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "complexity_rating",
+          "type": "INTEGER"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "knowledge_rating",
+          "type": "INTEGER"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "blogpost_candidate",
+          "type": "BOOLEAN"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "playbook_candidate",
+          "type": "BOOLEAN"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "casestudy_candidate",
+          "type": "BOOLEAN"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "needs_cre_feedback",
+          "type": "BOOLEAN"
+        },
+        {
+          "mode": "NULLABLE",
+          "name": "good_story",
+          "type": "BOOLEAN"
+        },
+        {
+          "mode": "REPEATED",
+          "name": "tags",
+          "type": "STRING"
+        }
+      ],
+      "mode": "REQUIRED",
+      "name": "review",
+      "type": "RECORD"
+    }
+  ]
