@@ -14,9 +14,9 @@ WITH _base AS (
             ELSE 'external'
         END AS user_type
     FROM `doit-zendesk-analysis.zendesk.ticket` AS t
-    INNER JOIN doit-zendesk-analysis.zendesk.ticket_comment AS tc
+    INNER JOIN `doit-zendesk-analysis.zendesk.ticket_comment` AS tc
         ON t.id = tc.ticket_id
-    INNER JOIN doit-zendesk-analysis.zendesk.user AS u
+    INNER JOIN `doit-zendesk-analysis.zendesk.user` AS u
         ON tc.user_id = u.id
     WHERE
         1 = 1
@@ -156,7 +156,7 @@ _calc AS (
         priority,
         status,
         custom_product,
-        NULL AS frt,
+        NULL AS frt, #FIXME
         CASE custom_platform
             WHEN 'amazon_web_services' THEN 'AWS' WHEN
                 'google_cloud_platform'
@@ -164,7 +164,7 @@ _calc AS (
             ELSE 'OTHER'
         END AS custom_platform,
         ARRAY_AGG(
-            STRUCT(created, user_id, body, anonymised_body, user_type, time_to_reply) ORDER BY created ASC
+            STRUCT(created, user_id, body, anonymised_body, user_type, time_to_reply, public) ORDER BY created ASC
         ) AS comment,
         MAX(updated_at) AS lastupdate_at #FIXME
     FROM time_to_reply AS ttr

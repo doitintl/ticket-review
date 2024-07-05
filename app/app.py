@@ -161,18 +161,22 @@ def main():
         for index in range(len(df)):
             comments = df["anonymised_body"].iloc[index]
             user_type = df["user_type"].iloc[index]
+            public = df["public"].iloc[index]
 
             # Set the color based on the user type
-            if user_type == 'external':
+            if public is False:
+                color = '#fc3165'
+            elif user_type == 'external':
                 color = '#F0F2F6'
             elif user_type == 'internal':
                 color = '#FFFFFF'
 
+
+
+
             # Display the comment with the specified color
             st.markdown(f"<div style='background-color:{color}'>{comments}</div>", unsafe_allow_html=True)
             st.divider()
-
-            #FIXME: Mark internal comments in another color
 
     with col2.container(height=1000):
 

@@ -72,6 +72,10 @@
         {
           "name": "time_to_reply",
           "type": "INTEGER"
+        },
+        {
+          "name": "public",
+          "type": "BOOLEAN"
         }
       ],
       "mode": "REPEATED",
