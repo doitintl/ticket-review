@@ -58,9 +58,9 @@ def get_ticket(ticket_category):
 
     try:
         query = (f" SELECT *EXCEPT(comment) FROM `doit-ticket-review.sampled_data.sampled_tickets`, UNNEST(comment) AS c"
-                 f" WHERE ticket_id = ("
-                 f"     SELECT ANY_VALUE(ticket_id) FROM `doit-ticket-review.sampled_data.sampled_tickets` "
-                 f"     WHERE custom_product = '{ticket_category}' LIMIT 1 )"
+                 f" WHERE ticket_id =  210875"
+                # f"     SELECT ANY_VALUE(ticket_id) FROM `doit-ticket-review.sampled_data.sampled_tickets` "
+                # f"     WHERE custom_product = '{ticket_category}' LIMIT 1 )"
                  f" ORDER BY c.created ASC")
         query_job = client.query(query)
         results = query_job.result()  # Waits for the query to complete
@@ -88,7 +88,7 @@ def get_ticket_categories():
 
 def user_details():
     """ 
-        Getting all user detials from headers
+        Getting all user details from headers
     """
 
     headers = _get_websocket_headers()
@@ -96,7 +96,81 @@ def user_details():
     user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
     return user_id, user_email, error_str
 
-def main():
+def render_ticket_details(ticket_category):
+    """ 
+        Render all ticket related fields
+    """
+
+    df = get_ticket(ticket_category)
+
+    if len(df) == 0:
+        st.warning('No ticket avilible for review.', icon="⚠️")
+        return
+
+    ticket_details = {
+        "subject": df["subject"].iloc[0],
+        "created_at": df["ticket_creation_ts"].iloc[0],
+        "last_update_at": pd.to_datetime(df['lastupdate_at'].iloc[0]),
+        "resolution_time": pd.to_datetime(df['lastupdate_at'].iloc[0]) - df["ticket_creation_ts"].iloc[0],
+        "ticket_id": df["id"].iloc[0],
+        "ticket_priority": df["priority"].iloc[0],
+        "platform": df["custom_platform"].iloc[0],
+        "product": df["custom_product"].loc[0],
+        "is_escalated": df["escalation"].iloc[0],
+        "csat": df["csat"].iloc[0],
+        "frt": df["frt"].iloc[0],
+    }
+
+    st.markdown(f"**{ticket_details['subject']}**")
+
+    tagger_component("", [ticket_details['ticket_priority'], f"escalated: {ticket_details['is_escalated']}", ticket_details['platform'], ticket_details['product'], f"time-to-solve: {ticket_details['resolution_time']} 🏁", f"CSAT: {ticket_details['csat']}", f"FRT: {ticket_details['frt']}"],
+                            color_name=["grey", "red", "orange", "green", "grey", "grey", "grey"])
+
+    with st.expander("Ticket Statstics 💡", expanded=False):
+        st.markdown( f"Opened at *{ticket_details['created_at']}* and closed on *{ticket_details['last_update_at']}*")
+
+        chart_data = pd.DataFrame(df, columns=["created", "time_to_reply", "body", "user_type","comments"])
+
+        # Define a function to determine the color based on user_type
+        def determine_color(user_type):
+            if user_type == "external":
+                return "#FC3165"
+            elif user_type == "internal":
+                return "#303DA8"
+
+        # Apply the function to create the new column
+        chart_data["color"] = df["user_type"].apply(determine_color)
+
+        #st.write(chart_data)
+
+        st.bar_chart(
+            chart_data, 
+            x='created',
+            y=["time_to_reply"],
+            color='color')
+
+    # Loop through DataFrame and apply conditional formatting
+    for index in range(len(df)):
+        comments = df["anonymised_body"].iloc[index]
+        user_type = df["user_type"].iloc[index]
+        public = df["public"].iloc[index]
+
+        # Set the color based on the user type
+        if public is False:
+            color = '#fc3165'
+        elif user_type == 'external':
+            color = '#F0F2F6'
+        elif user_type == 'internal':
+            color = '#FFFFFF'
+
+        # Display the comment with the specified color
+        st.markdown(public)
+        st.markdown(color)
+
+        st.markdown(f"<div style='background-color:{color}'>{comments}</div>", unsafe_allow_html=True)
+        st.divider()
+
+def run():
     """ 
         Streamlit components to run the app
     """
@@ -110,73 +184,7 @@ def main():
     col1, col2 = st.columns([0.6, 0.4])
 
     with col1.container(height=1000):
-
-        df = get_ticket(ticket_category)
-
-        if len(df) == 0:
-            st.warning('No ticket avilible for review.', icon="⚠️")
-            return
-
-        subject = df["subject"].iloc[0]
-        created_at = df["ticket_creation_ts"].iloc[0]
-        lastupdate_at = pd.to_datetime(df['lastupdate_at'].iloc[0])
-        resolution_time = lastupdate_at - created_at
-        ticket_id = df["id"].iloc[0]
-        ticket_prio = df["priority"].iloc[0]
-        cloud= df["custom_platform"].iloc[0]
-        product = df["custom_product"].loc[0]
-        escalated = df["escalation"].iloc[0]
-        csat = df["csat"].iloc[0]
-        frt = df["frt"].iloc[0]
-
-        st.markdown(f"**{subject}**")
-
-        tagger_component("", [ticket_prio, f"escalated: {escalated}", cloud, product, f"time-to-solve: {resolution_time} 🏁", f"CSAT: {csat}", f"FRT: {frt}"],
-                                color_name=["grey", "red", "orange", "green", "grey", "grey", "grey"])
-
-        with st.expander("Ticket Statstics 💡", expanded=False):
-            st.markdown( f"Opened at *{created_at}* and closed on *{lastupdate_at}*")
-
-            chart_data = pd.DataFrame(df, columns=["created", "time_to_reply", "body", "user_type","comments"])
-
-            # Define a function to determine the color based on user_type
-            def determine_color(user_type):
-                if user_type == "external":
-                    return "#FC3165"
-                elif user_type == "internal":
-                    return "#303DA8"
-
-            # Apply the function to create the new column
-            chart_data["color"] = df["user_type"].apply(determine_color)
-
-            #st.write(chart_data)
-
-            st.bar_chart(
-                chart_data, 
-                x='created',
-                y=["time_to_reply"],
-                color='color')
-
-        # Loop through DataFrame and apply conditional formatting
-        for index in range(len(df)):
-            comments = df["anonymised_body"].iloc[index]
-            user_type = df["user_type"].iloc[index]
-            public = df["public"].iloc[index]
-
-            # Set the color based on the user type
-            if public is False:
-                color = '#fc3165'
-            elif user_type == 'external':
-                color = '#F0F2F6'
-            elif user_type == 'internal':
-                color = '#FFFFFF'
-
-
-
-
-            # Display the comment with the specified color
-            st.markdown(f"<div style='background-color:{color}'>{comments}</div>", unsafe_allow_html=True)
-            st.divider()
+        render_ticket_details(ticket_category)
 
     with col2.container(height=1000):
 
@@ -306,4 +314,4 @@ def main():
         st.markdown( user_details() )
 
 if __name__ == "__main__":
-    main()
+    run()
