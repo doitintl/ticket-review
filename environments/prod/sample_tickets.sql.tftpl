@@ -20,10 +20,11 @@ WITH _base AS (
         ON tc.user_id = u.id
     WHERE
         1 = 1
-        AND tc.user_id != 12741275940764 # exclude ZR comments
-        AND tc.user_id != 10480587018012 # exclude Zippy comments
-        AND tc.user_id != 1824442126 # exclude urgent ticket warnings
-        AND custom_platform IS NOT NULL # exclude finance tickets
+        AND tc.user_id != 12741275940764    # exclude ZR comments
+        AND tc.user_id != 10480587018012    # exclude Zippy comments
+        AND tc.user_id != 1824442126        # exclude urgent ticket warnings
+        AND custom_platform IS NOT NULL     # exclude finance tickets
+        AND custom_product IS NOT NULL      # exclude follow-up-tickets
         AND subject NOT LIKE ('%[gCRE]%')
         # exlude all other GetDoer requests such as Onboarding / ..
         AND system_client != 'GetDoer/ZendeskClient'
@@ -171,6 +172,15 @@ _calc AS (
     INNER JOIN final_tags AS t
         ON ttr.id = t.ticket_id
     GROUP BY ALL
+),
+
+fa AS (
+
+SELECT c.*, m.p_group, m.focus_area
+FROM _calc c
+INNER JOIN doit-zendesk-analysis.practice_areas_analysis.product_to_focus_area m
+ON c.custom_product = m.product
+
 )
 
-SELECT * FROM _calc;
+SELECT * FROM fa;
