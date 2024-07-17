@@ -1,90 +1,109 @@
 [
-    {
-      "name": "ticket_id",
-      "type": "INTEGER"
-    },
-    {
-      "name": "escalation",
-      "type": "STRING"
-    },
-    {
-      "name": "csat",
-      "type": "STRING"
-    },
-    {
-      "name": "id",
-      "type": "INTEGER"
-    },
-    {
-      "name": "ticket_creation_ts",
-      "type": "TIMESTAMP"
-    },
-    {
-      "name": "assignee_id",
-      "type": "INTEGER"
-    },
-    {
-      "name": "subject",
-      "type": "STRING"
-    },
-    {
-      "name": "priority",
-      "type": "STRING"
-    },
-    {
-      "name": "status",
-      "type": "STRING"
-    },
-    {
-      "name": "custom_product",
-      "type": "STRING"
-    },
-    {
-      "name": "frt",
-      "type": "INTEGER"
-    },
-    {
-      "name": "custom_platform",
-      "type": "STRING"
-    },
-    {
-      "fields": [
-        {
-          "name": "created",
-          "type": "TIMESTAMP"
-        },
-        {
-          "name": "user_id",
-          "type": "INTEGER"
-        },
-        {
-          "name": "body",
-          "type": "STRING"
-        },
-        {
-          "name": "anonymised_body",
-          "type": "STRING"
-        },
-        {
-          "name": "user_type",
-          "type": "STRING"
-        },
-        {
-          "name": "time_to_reply",
-          "type": "INTEGER"
-        },
-        {
-          "name": "public",
-          "type": "BOOLEAN"
-        }
-      ],
-      "mode": "REPEATED",
-      "name": "comment",
-      "type": "RECORD"
-    },
-    {
-      "name": "lastupdate_at",
-      "type": "TIMESTAMP"
-    }
-  ]
-  
+  {
+    "name": "ticket_id",
+    "type": "INTEGER"
+  },
+  {
+    "name": "escalation",
+    "type": "STRING"
+  },
+  {
+    "name": "csat",
+    "type": "STRING"
+  },
+  {
+    "name": "id",
+    "type": "INTEGER"
+  },
+  {
+    "name": "ticket_creation_ts",
+    "type": "TIMESTAMP"
+  },
+  {
+    "name": "assignee_id",
+    "type": "INTEGER"
+  },
+  {
+    "name": "subject",
+    "type": "STRING"
+  },
+  {
+    "name": "priority",
+    "type": "STRING"
+  },
+  {
+    "name": "status",
+    "type": "STRING"
+  },
+  {
+    "name": "custom_product",
+    "type": "STRING"
+  },
+  {
+    "name": "frt",
+    "type": "INTEGER"
+  },
+  {
+    "name": "custom_platform",
+    "type": "STRING"
+  },
+  {
+    "fields": [
+      {
+        "name": "created",
+        "type": "TIMESTAMP"
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER"
+      },
+      {
+        "name": "body",
+        "type": "STRING"
+      },
+      {
+        "name": "anonymised_body",
+        "type": "STRING"
+      },
+      {
+        "name": "user_type",
+        "type": "STRING"
+      },
+      {
+        "name": "time_to_reply",
+        "type": "INTEGER"
+      },
+      {
+        "name": "public",
+        "type": "BOOLEAN"
+      }
+    ],
+    "mode": "REPEATED",
+    "name": "comment",
+    "type": "RECORD"
+  },
+  {
+    "name": "lastupdate_at",
+    "type": "TIMESTAMP"
+  },
+  {
+    "name": "lastupdate_at",
+    "type": "TIMESTAMP"
+  },
+  {
+    "name": "group",
+    "mode": "NULLABLE",
+    "type": "STRING"
+  },
+  {
+    "name": "focus_area",
+    "mode": "NULLABLE",
+    "type": "STRING"
+  },
+  {
+    "name": "assigned_reviewer",
+    "defaultValueExpression": "\"demo@doit.com\"",
+    "mode": "NULLABLE",
+    "type": "STRING"
+  }
+]
