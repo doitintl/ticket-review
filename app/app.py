@@ -36,6 +36,17 @@ def validate_iap_jwt(iap_jwt, expected_audience):
     except Exception as error:
         return (None, None, f"**ERROR: JWT validation error {error}**")
 
+def user_details():
+    """ 
+        Getting all user detials from headers
+    """
+
+    headers = _get_websocket_headers()
+    access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
+    user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
+    return user_id, user_email, error_str
+
+
 st.set_page_config(
     page_title="Ticket Review @ DoiT",
     page_icon="🧊",
@@ -48,8 +59,32 @@ st.set_page_config(
 PROJECT = "doit-ticket-review"
 
 client = bigquery.Client()
-client_fb = firestore_admin_v1.FirestoreAdminClient()
+client_fb = firestore.Client(project="zenrouter")
 db = firestore.Client(project=PROJECT)
+reviewer = user_details()
+
+def find_fa_by_email(email):
+    """
+    Fetch a document from a Firestore collection where the email attribute matches a specific value.
+    Throws an error if more than one document matches the query.
+
+    Args:
+      email: The email value to match in the Firestore collection.
+
+    Returns:
+      An array containing a single dictionary with the data of the matching document.
+      Throws an error if more than one document is found.
+    """
+    query_ref = client_fb.collection("cre").where("email", '==', email)
+    documents = query_ref.stream()
+
+    results = []
+    for doc in documents:
+        results.append(doc.to_dict())
+        if len(results) > 1:
+            raise ValueError("More than one document found for the provided email.")
+    
+    return results
 
 @st.cache_data(ttl=600)
 def get_ticket(ticket_category):
@@ -86,16 +121,6 @@ def get_ticket_categories():
     except GoogleAPICallError as error:
         st.error(f"API Error: {error}")
         return error
-
-def user_details():
-    """ 
-        Getting all user detials from headers
-    """
-
-    headers = _get_websocket_headers()
-    access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
-    user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
-    return user_id, user_email, error_str
 
 def main():
     """ 
@@ -263,7 +288,6 @@ def main():
             if reviewer_thoughts and reponse_rating != 0 and time_rating:
 
                 timestamp = datetime.datetime.now()
-                reviewer = user_details()
 
                 data = {
                     'ticket_id': int(ticket_id),
@@ -304,7 +328,13 @@ def main():
                 st.warning("Please add a review before submitting")
 
     with bottom():
-        st.markdown( user_details() )
+        st.markdown(reviewer)
+        documents = find_fa_by_email(reviewer[1])
+        if documents:  # Check if any documents are found
+            focus_areas = documents[0].get('focus_areas', 'No focus areas found')
+            st.markdown(focus_areas)
+        else:
+            st.warning("No documents found for the provided email.")
 
 if __name__ == "__main__":
     main()

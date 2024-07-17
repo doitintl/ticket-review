@@ -40,13 +40,6 @@ resource "google_project_iam_member" "cloud-run-sa-role-attachment" {
   project = var.project
 }
 
-resource "google_firestore_database" "database" {
-  project     = var.project
-  name        = "(default)"
-  location_id = var.region
-  type        = "FIRESTORE_NATIVE"
-}
-
 resource "google_cloud_run_v2_service" "default" {
   name     = "${var.app_name}-app"
   location = var.region
