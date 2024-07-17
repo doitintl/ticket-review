@@ -181,6 +181,11 @@ FROM _calc c
 INNER JOIN doit-zendesk-analysis.practice_areas_analysis.product_to_focus_area m
 ON c.custom_product = m.product
 
+), 
+
+final AS (
+
+    SELECT *, "philipp@doit.com" as assigned_reviewer  FROM fa
 )
 
-SELECT * FROM fa;
+SELECT * FROM final;

@@ -93,6 +93,10 @@
     {
       "name": "focus_area",
       "type": "STRING"
-    },           
+    },
+    {
+      "name": "assigned_reviewer",
+      "type": "STRING"
+    }                   
   ]
   
