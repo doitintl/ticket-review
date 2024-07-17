@@ -84,10 +84,6 @@
   },
   {
     "name": "lastupdate_at",
-    "type": "TIMESTAMP"
-  },
-  {
-    "name": "lastupdate_at",
     "mode": "NULLABLE",
     "type": "TIMESTAMP"
   },
