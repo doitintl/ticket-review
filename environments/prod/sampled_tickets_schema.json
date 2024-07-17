@@ -85,6 +85,18 @@
     {
       "name": "lastupdate_at",
       "type": "TIMESTAMP"
-    }
+    },
+    {
+      "name": "group",
+      "type": "STRING"
+    },
+    {
+      "name": "focus_area",
+      "type": "STRING"
+    },
+    {
+      "name": "assigned_reviewer",
+      "type": "STRING"
+    }                   
   ]
   
