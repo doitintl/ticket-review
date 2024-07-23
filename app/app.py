@@ -1,51 +1,13 @@
 import datetime
-import streamlit as st
+
 import pandas as pd
-import numpy as np
+import streamlit as st
 from google.api_core.exceptions import GoogleAPICallError
-from google.auth.transport import requests
-from google.cloud import bigquery, firestore, firestore_admin_v1
-from google.oauth2 import id_token
-from streamlit.web.server.websocket_headers import _get_websocket_headers
-from streamlit_extras.tags import tagger_component
-from streamlit_extras.bottom_container import bottom
+from google.cloud import bigquery, firestore
 from google.cloud.bigquery._helpers import _timestamp_to_json_parameter
-
-
-def validate_iap_jwt(iap_jwt, expected_audience):
-    """Validate an IAP JWT.
-
-    Args:
-      iap_jwt: The contents of the X-Goog-IAP-JWT-Assertion header.
-      expected_audience: The Signed Header JWT audience. See
-          https://cloud.google.com/iap/docs/signed-headers-howto
-          for details on how to get this value.
-
-    Returns:
-      (user_id, user_email, error_str).
-    """
-
-    try:
-        decoded_jwt = id_token.verify_token(
-            iap_jwt,
-            requests.Request(),
-            audience=expected_audience,
-            certs_url="https://www.gstatic.com/iap/verify/public_key",
-        )
-        return (decoded_jwt["sub"], decoded_jwt["email"], "")
-    except Exception as error:
-        return (None, None, f"**ERROR: JWT validation error {error}**")
-
-def user_details():
-    """ 
-        Getting all user detials from headers
-    """
-
-    headers = _get_websocket_headers()
-    access_token = headers.get("X-Goog-Iap-Jwt-Assertion")
-    user_id, user_email, error_str = validate_iap_jwt(access_token, "/projects/874764407517/global/backendServices/2612614375736935637")
-    return user_id, user_email, error_str
-
+from streamlit_extras.bottom_container import bottom
+from streamlit_extras.tags import tagger_component
+from utils import find_fa_by_email, user_details
 
 st.set_page_config(
     page_title="Ticket Review @ DoiT",
@@ -54,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-#st.logo("https://help.doit.com/favicon-32x32.png")
+# st.logo("https://help.doit.com/favicon-32x32.png")
 
 PROJECT = "doit-ticket-review"
 
@@ -63,28 +25,6 @@ client_fb = firestore.Client(project="zenrouter")
 db = firestore.Client(project=PROJECT)
 reviewer = user_details()
 
-def find_fa_by_email(email):
-    """
-    Fetch a document from a Firestore collection where the email attribute matches a specific value.
-    Throws an error if more than one document matches the query.
-
-    Args:
-      email: The email value to match in the Firestore collection.
-
-    Returns:
-      An array containing a single dictionary with the data of the matching document.
-      Throws an error if more than one document is found.
-    """
-    query_ref = client_fb.collection("cre").where("email", '==', email)
-    documents = query_ref.stream()
-
-    results = []
-    for doc in documents:
-        results.append(doc.to_dict())
-        if len(results) > 1:
-            raise ValueError("More than one document found for the provided email.")
-    
-    return results
 
 @st.cache_data(ttl=600)
 def get_ticket(ticket_category):
@@ -106,6 +46,7 @@ def get_ticket(ticket_category):
         st.error(f"API Error: {error}")
         return error
 
+
 def get_ticket_categories():
     """ 
     Getting a list of ticket categories
@@ -122,6 +63,7 @@ def get_ticket_categories():
         st.error(f"API Error: {error}")
         return error
 
+
 def main():
     """ 
         Streamlit components to run the app
@@ -131,7 +73,8 @@ def main():
 
     with st.container(border=True):
         with st.status("Loading tickets...", expanded=True):
-            ticket_category = st.selectbox('Select a ticket category', get_ticket_categories())
+            ticket_category = st.selectbox(
+                'Select a ticket category', get_ticket_categories())
 
     col1, col2 = st.columns([0.6, 0.4])
 
@@ -149,7 +92,7 @@ def main():
         resolution_time = lastupdate_at - created_at
         ticket_id = df["id"].iloc[0]
         ticket_prio = df["priority"].iloc[0]
-        cloud= df["custom_platform"].iloc[0]
+        cloud = df["custom_platform"].iloc[0]
         product = df["custom_product"].loc[0]
         escalated = df["escalation"].iloc[0]
         csat = df["csat"].iloc[0]
@@ -158,12 +101,14 @@ def main():
         st.markdown(f"**{subject}**")
 
         tagger_component("", [ticket_prio, f"escalated: {escalated}", cloud, product, f"time-to-solve: {resolution_time} 🏁", f"CSAT: {csat}", f"FRT: {frt}"],
-                                color_name=["grey", "red", "orange", "green", "grey", "grey", "grey"])
+                         color_name=["grey", "red", "orange", "green", "grey", "grey", "grey"])
 
         with st.expander("Ticket Statstics 💡", expanded=False):
-            st.markdown( f"Opened at *{created_at}* and closed on *{lastupdate_at}*")
+            st.markdown(
+                f"Opened at *{created_at}* and closed on *{lastupdate_at}*")
 
-            chart_data = pd.DataFrame(df, columns=["created", "time_to_reply", "body", "user_type","comments"])
+            chart_data = pd.DataFrame(
+                df, columns=["created", "time_to_reply", "body", "user_type", "comments"])
 
             # Define a function to determine the color based on user_type
             def determine_color(user_type):
@@ -175,10 +120,10 @@ def main():
             # Apply the function to create the new column
             chart_data["color"] = df["user_type"].apply(determine_color)
 
-            #st.write(chart_data)
+            # st.write(chart_data)
 
             st.bar_chart(
-                chart_data, 
+                chart_data,
                 x='created',
                 y=["time_to_reply"],
                 color='color')
@@ -197,11 +142,9 @@ def main():
             elif user_type == 'internal':
                 color = '#FFFFFF'
 
-
-
-
             # Display the comment with the specified color
-            st.markdown(f"<div style='background-color:{color}'>{comments}</div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='background-color:{color}'>{comments}</div>", unsafe_allow_html=True)
             st.divider()
 
     with col2.container(height=1000):
@@ -209,7 +152,7 @@ def main():
         with st.form(key='review', border=False, clear_on_submit=True):
 
             with st.expander("Things to consider for a good ticket review 💡", expanded=False):
-                st.write( # FIXME: write a meaningfull decription here
+                st.write(  # FIXME: write a meaningfull decription here
                     """
                     - What kind of information is in this database?
                     - What percentage of orders are returned?
@@ -221,26 +164,21 @@ def main():
 
             # Star rating
             reponse_rating = st.slider(
-                'Quality of Responses: accuracy, clarity, and completeness'
-                , 0, 5,
+                'Quality of Responses: accuracy, clarity, and completeness', 0, 5,
                 help="A score of 1 indicates poor quality, while a score of 5 indicates excellent quality.")
             time_rating = st.slider(
-                'Timeliness of Responses: promptness of follow-ups, resolution time, and efficiency'
-                , 0, 5,
+                'Timeliness of Responses: promptness of follow-ups, resolution time, and efficiency', 0, 5,
                 help="A score of 1 indicates significant delays and 5 indicates"
-                    "consistently prompt and timely responses throughout the entire case interaction.")
+                "consistently prompt and timely responses throughout the entire case interaction.")
             kindness_rating = st.slider(
-                'Agent Kindness: friendliness, politeness, and empathy'
-                , 0, 5,
+                'Agent Kindness: friendliness, politeness, and empathy', 0, 5,
                 help="A score of 1 indicates a lack of kindness and 5 indicates exceptional kindness.")
             complexity_rating = st.slider(
-                'Complexity Handling'
-                , 0, 5,
+                'Complexity Handling', 0, 5,
                 help="A score of 1 indicates poor handling (missing key details, inadequate solutions)"
-                    "and 5 indicates excellent handling (thorough analysis, effective resource use, clear communication).")
+                "and 5 indicates excellent handling (thorough analysis, effective resource use, clear communication).")
             knowledge_rating = st.slider(
-                'CRE Knowledge and Expertise'
-                , 0 , 5,
+                'CRE Knowledge and Expertise', 0, 5,
                 help="A score of 1 indicates a lack of expertise and 5 indicates high expertise.")
 
             # Checkboxes for Knowledge assets
@@ -259,29 +197,29 @@ def main():
                 good_story = st.checkbox('This is a good story')
 
             tags = st.multiselect("Adherence to Company Values",
-                                ["#wow-the-customer", "#act-as-one-team", "#see-it-through",
-                                    "#be-entrepreneurial", "#pursue-knowledge", "#have-fun"],
-                                [])  # pre-filled-values
+                                  ["#wow-the-customer", "#act-as-one-team", "#see-it-through",
+                                   "#be-entrepreneurial", "#pursue-knowledge", "#have-fun"],
+                                  [])  # pre-filled-values
 
             reviewer_thoughts = st.text_area(
-                "Learning and Improvement Feedback(*)",  
+                "Learning and Improvement Feedback(*)",
                 "It was the best of times, it was the worst of times, it was the age of "
                 "wisdom, it was the age of foolishness, it was the epoch of belief, it "
                 "was the epoch of incredulity, it was the season of Light, it was the "
                 "season of Darkness, it was the spring of hope, it was the winter of "
                 "despair, (...)",
                 help="This is a mandatory field",
-                height= 100)
+                height=100)
 
             st.session_state.type = "primary"
 
             submit_form = st.form_submit_button(
-                    'Submit review 🏁', type=st.session_state.type, use_container_width = True)
-            #FIXME: grey it out, when no ticket was loaded
+                'Submit review 🏁', type=st.session_state.type, use_container_width=True)
+            # FIXME: grey it out, when no ticket was loaded
 
         if submit_form:
 
-            #FIXME: only allow submit when a ticket was loaded
+            # FIXME: only allow submit when a ticket was loaded
             # use session_state for that : https://discuss.streamlit.io/t/streamlit-button-disable-enable/31293
             # when the column is loaded add something to session state to indicate a ticket has been loaded
 
@@ -329,12 +267,14 @@ def main():
 
     with bottom():
         st.markdown(reviewer)
-        documents = find_fa_by_email(reviewer[1])
+        documents = find_fa_by_email(client_fb, reviewer[1])
         if documents:  # Check if any documents are found
-            focus_areas = documents[0].get('focus_areas', 'No focus areas found')
+            focus_areas = documents[0].get(
+                'focus_areas', 'No focus areas found')
             st.markdown(focus_areas)
         else:
             st.warning("No documents found for the provided email.")
+
 
 if __name__ == "__main__":
     main()
