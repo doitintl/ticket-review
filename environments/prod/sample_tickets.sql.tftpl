@@ -168,7 +168,7 @@ _calc AS (
         ) AS comment,
         MAX(updated_at) AS lastupdate_at, #FIXME
         "none" AS `group`, #FIXME
-        NULL AS focus_area, #FIXME
+        "none" AS focus_area, #FIXME
         "demo@doit.com" AS assigned_reviewer
 
     FROM time_to_reply AS ttr
