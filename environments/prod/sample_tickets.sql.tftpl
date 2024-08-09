@@ -166,7 +166,11 @@ _calc AS (
         ARRAY_AGG(
             STRUCT(created, user_id, body, anonymised_body, user_type, time_to_reply, public) ORDER BY created ASC
         ) AS comment,
-        MAX(updated_at) AS lastupdate_at #FIXME
+        MAX(updated_at) AS lastupdate_at #FIXME,
+        "none" AS group #FIXME,
+        NULL AS focus_area #FIXME,
+        "demo@doit.com" AS assigned_reviewer
+
     FROM time_to_reply AS ttr
     INNER JOIN final_tags AS t
         ON ttr.id = t.ticket_id
